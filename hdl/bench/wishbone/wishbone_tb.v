@@ -29,9 +29,9 @@ module wishbone_tb ();
 // wishbone bus paremeters
 localparam DW = `WB_DW;    // data width
 localparam AW = `WB_AW;    // address width
-localparam SW = DW/8;  // byte select width
+localparam SW =     DW/8;  // byte select width
 
-localparam M1_PROGRAM = "wishbone_program.txt";
+localparam M1_PROGRAM = "hdl/bench/wishbone/wishbone_program.txt";
 
 // system signals
 reg clk, rst;

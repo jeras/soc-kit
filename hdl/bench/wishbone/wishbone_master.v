@@ -125,29 +125,36 @@ always @ (posedge rst, posedge clk)
 if (rst) begin
   // set the bus into an idle state
   {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
+  raw <= 0;
 end else begin
   if (run) begin
-//    if (trn && STREAM)  $fwrite (program_file, "%h\n", dat_i);
-//    if (rdy) begin
-    if (1) begin
+    if (trn) begin
+//    if (we && STREAM)  $fwrite (program_file, "%h\n", dat_i);
+      if (~((cti == 3'b000) | (cti == 3'b111))) begin
+        cnt_bst <= cnt_bst - 1;
+        if (cnt_bst == 1)
+          cti <= 3'b111;
+      end
+    end
+    if (rdy | raw) begin
       program_status = $fscanf (program_file, "%s ", inst);
       case (inst)
         "display" : begin
           program_status = $fscanf (program_file, "%s ", text);
-          program_status = $fscanf (program_file, "%b ", t_cyc);
-          $display ("DEBUG: executing instruction \"%s\", text \"%s\", value %b", inst, text, t_cyc);
-          cyc <= t_cyc;
-          raw <= 1;
+          $display ("INFO: Master program requested to display \"%s\".", text);
         end
         "raw_wb" : begin
           program_status = $fscanf (program_file, "%b %b %b %h %h %b %b %h ", cyc, stb, we, adr, sel, cti, bte, dat_o);
           raw <= 1;
         end
         "write"  : begin
-          $finish;
+          {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b1, 3'b000, 2'b00};
+          program_status = $fscanf (program_file, "%h %h %h ", adr, sel, dat_o);
         end
         "read"   : begin
-          $finish;
+          {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b0, 3'b000, 2'b00};
+          program_status = $fscanf (program_file, "%h %h ", adr, sel);
+          dat_o <= {DW{IV}};
         end
         "finish" : begin
           $fclose (program_file);
@@ -158,14 +165,6 @@ end else begin
           {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
         end
       endcase
-    end else begin
-      if (trn) begin
-        if (~((cti == 3'b000) | (cti == 3'b111))) begin
-          cnt_bst <= cnt_bst - 1;
-          if (cnt_bst == 1)
-            cti <= 3'b111;
-        end
-      end
     end
   end
 end
