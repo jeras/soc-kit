@@ -31,7 +31,10 @@ localparam DW = `WB_DW;    // data width
 localparam AW = `WB_AW;    // address width
 localparam SW =     DW/8;  // byte select width
 
-localparam M1_PROGRAM = "hdl/bench/wishbone/wishbone_program.txt";
+// master program input and data output files
+//localparam M1_P = "hdl/bench/wishbone/wishbone_program.txt";
+localparam M1_P = "fifo_program";
+localparam M1_D = "hdl/bench/wishbone/wishbone_data.txt";
 
 // system signals
 reg clk, rst;
@@ -76,8 +79,10 @@ end
 //////////////////////////////////////////////////////////////////////////////
 
 wishbone_master #(
-  .FILE   (M1_PROGRAM),
-  .NAME   ("WB master")
+  .FILE_I (M1_P),
+  .FILE_O (M1_D),
+  .NAME   ("WB master"),
+  .AUTO   (1)
 ) m1 (
   .clk    (clk     ),
   .rst    (rst     ),

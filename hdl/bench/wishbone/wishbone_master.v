@@ -24,18 +24,18 @@
 `include "wishbone_defines.v"
 
 module wishbone_master #(
-  // parameter declaration
+  // bus properties
   parameter AW = `WB_AW,         // address bus width
   parameter DW = `WB_DW,         // data bus width
   parameter SW = `WB_DW/8,       // byte select bus width
   parameter DE = `WB_DE,         // data endianness ('BIG' or 'LITTLE')
   parameter IV = 1'bx,           // idle value (value of signals when bus is idle)
-  // file parameter
-  parameter FILE = "",           // program filename
-  // presentation parameter
-  parameter NAME = "noname",      // instance name used for ERROR reporting
-  parameter AUTOBOOT = 1,
-  parameter STREAM = 1
+  // input file (program), output file (read data)
+  parameter FILE_I = "",         // program filename
+  parameter FILE_O = "",         // program filename
+  // presentation
+  parameter NAME = "noname",     // instance name used for ERROR reporting
+  parameter AUTO = 0
 )(
   // Wishbone system signals
   input  wire          clk,      // system clock
@@ -74,12 +74,13 @@ reg run = 0;
 wire    trn;       // transfer completion indicator
 wire    rdy;       // bus redyness status
 
-// program file
-integer program_file;       // program file pointer
-integer program_status = 0; // program file access stattus
+// file pointer and access status
+integer fp_i, fs_i = 0; // program input
+integer fp_o, fs_o = 0; // read output
 
 // program file parsing variables
 reg [8*8-1:0] inst, text;
+reg     [7:0] c;
 
 ///////////////////////////////////////////////////////////////////////////////
 // wishbone data path                                                        //
@@ -90,13 +91,28 @@ assign rdy = ~cyc | trn & ((cti == 3'b000) | (cti == 3'b111));
 
 initial begin
   $display ("DEBUG: Stating master");
-  if (AUTOBOOT)  start (FILE);
+  if (AUTO)  start (FILE_I, FILE_O);
   #200 $finish;
 end
 
-task start (input reg [256*8-1:0] filename); begin
-  $display ("DEBUG: Opening program file %s", filename);
-  program_file = $fopen (filename, "r");
+task start (
+  input reg [256*8-1:0] filename_i,
+  input reg [256*8-1:0] filename_o
+); begin
+  if (filename_i != "") begin
+    fp_i = $fopen (filename_i, "r");
+    $display ("DEBUG: Opening program input file %s", filename_i);
+  end else begin
+    $display ("ERROR: No program input file specified!");
+    $finish;
+  end
+  if (filename_o != "") begin
+    fp_o = $fopen (filename_o, "w");
+    $display ("DEBUG: Opening read output file %s", filename_o);
+  end else begin
+    $display ("DEBUG: No read ouptut file specified!");
+    $finish;
+  end
   run = 1;
 end endtask
 
@@ -111,11 +127,11 @@ integer position = 0;
 
 always @ (posedge clk) begin
   cnt_clk <= cnt_clk + 1;
-//  program_status = $fscanf (program_file, "%s ", instruction);
-  position = $ftell(program_file);
+//  fs_i = $fscanf (fp_i, "%s ", instruction);
+  position = $ftell(fp_i);
 //  $display ("DEBUG: at positions %d, parsing %s", position, instruction);
-//  program_status = $fscanf (program_file, "%s", instruction);
-  if (program_status == -4) $finish;
+//  fs_i = $fscanf (fp_i, "%s", instruction);
+  if (fs_i == -4) $finish;
   if (cnt_clk > 20) $finish;
 end
 
@@ -125,39 +141,64 @@ always @ (posedge rst, posedge clk)
 if (rst) begin
   // set the bus into an idle state
   {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
+  cnt_bst <= 0;
   raw <= 0;
 end else begin
+  // if 'run' is disabled, the master skips the clock pulse
   if (run) begin
+    // in the event of a data transfer
     if (trn) begin
-//    if (we && STREAM)  $fwrite (program_file, "%h\n", dat_i);
-      if (~((cti == 3'b000) | (cti == 3'b111))) begin
+      // sent the data to the output file
+      if (~we)  $fwrite (fp_o, "%h #", dat_i);
+      if (ack)  $fwrite (fp_o, " ack", dat_i);
+      if (err)  $fwrite (fp_o, " err", dat_i);
+      if (rty)  $fwrite (fp_o, " rty", dat_i);
+                $fwrite (fp_o, "/n"  , dat_i);
+      // properly finish burst cycles
+      if (cnt_bst > 0) begin
+        if (cnt_bst == 1)  cti <= 3'b111;
         cnt_bst <= cnt_bst - 1;
-        if (cnt_bst == 1)
-          cti <= 3'b111;
       end
     end
+    // in the case of the end of a single or burst cycle and in the case of raw cycles
     if (rdy | raw) begin
-      program_status = $fscanf (program_file, "%s ", inst);
+      // wait for a ne line in the file and skip comment lines
+      fs_i = 0;
+      while (fs_i == 0) begin
+        fs_i = $fscanf (fp_i, "%s ", inst);
+        //$display ("DEBUG: program file status %d.", fs_i);
+//        if (fs_i == 0)  c = $fgetc(fp_i);
+//        fs_i = $ungetc(c, fp_i);
+        if (inst == "#") begin
+          while ($fgetc(fp_i) != "\n") begin end
+          fs_i = 0;
+        end
+      end
+      // instruction decoder
       case (inst)
         "display" : begin
-          program_status = $fscanf (program_file, "%s ", text);
+          fs_i = $fscanf (fp_i, "%s ", text);
           $display ("INFO: Master program requested to display \"%s\".", text);
         end
         "raw_wb" : begin
-          program_status = $fscanf (program_file, "%b %b %b %h %h %b %b %h ", cyc, stb, we, adr, sel, cti, bte, dat_o);
+          fs_i = $fscanf (fp_i, "%b %b %b %h %h %b %b %h ", cyc, stb, we, adr, sel, cti, bte, dat_o);
           raw <= 1;
         end
         "write"  : begin
           {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b1, 3'b000, 2'b00};
-          program_status = $fscanf (program_file, "%h %h %h ", adr, sel, dat_o);
+          fs_i = $fscanf (fp_i, "%h %h %h ", adr, sel, dat_o);
         end
         "read"   : begin
           {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b0, 3'b000, 2'b00};
-          program_status = $fscanf (program_file, "%h %h ", adr, sel);
+          fs_i = $fscanf (fp_i, "%h %h ", adr, sel);
           dat_o <= {DW{IV}};
         end
+        "end"    : begin
+          run <= 0;
+        end
         "finish" : begin
-          $fclose (program_file);
+          $fclose (fp_i);
+          $fclose (fp_o);
           $finish;
         end
         default  : begin
