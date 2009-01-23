@@ -64,15 +64,14 @@ module wishbone_master #(
 // local signals                                                            //
 //////////////////////////////////////////////////////////////////////////////
 
-reg raw;
-reg [7:0] cnt_bst;
-
-// runnung status
-reg run = 0;
-
 // wishbone status
 wire    trn;       // transfer completion indicator
 wire    rdy;       // bus redyness status
+
+// wishbone master status
+integer cnt;       // burst or idle state counter
+reg     run = 0;   // master running status
+reg     raw;       // raw access status
 
 // file pointer and access status
 integer fp_i, fs_i = 0; // program input
@@ -132,7 +131,7 @@ always @ (posedge clk) begin
 //  $display ("DEBUG: at positions %d, parsing %s", position, instruction);
 //  fs_i = $fscanf (fp_i, "%s", instruction);
   if (fs_i == -4) $finish;
-  if (cnt_clk > 20) $finish;
+  if (cnt_clk > 100) $finish;
 end
 
 integer character;
@@ -141,7 +140,7 @@ always @ (posedge rst, posedge clk)
 if (rst) begin
   // set the bus into an idle state
   {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
-  cnt_bst <= 0;
+  cnt <= 0;
   raw <= 0;
 end else begin
   // if 'run' is disabled, the master skips the clock pulse
@@ -155,13 +154,15 @@ end else begin
       if (rty)  $fwrite (fp_o, " rty", dat_i);
                 $fwrite (fp_o, "/n"  , dat_i);
       // properly finish burst cycles
-      if (cnt_bst > 0) begin
-        if (cnt_bst == 1)  cti <= 3'b111;
-        cnt_bst <= cnt_bst - 1;
-      end
+      if (cnt >  0)  cnt <= cnt - 1;
+      if (cnt == 1)  cti <= 3'b111;
+    end
+    // handler for raw transfers
+    if (raw) begin
+      if (cnt >  0)  cnt <= cnt - 1;
     end
     // in the case of the end of a single or burst cycle and in the case of raw cycles
-    if (rdy | raw) begin
+    if ((rdy | raw) & (cnt == 0)) begin
       // wait for a ne line in the file and skip comment lines
       fs_i = 0;
       while (fs_i == 0) begin
@@ -176,12 +177,26 @@ end else begin
       end
       // instruction decoder
       case (inst)
+        // system instructions
         "display" : begin
           fs_i = $fscanf (fp_i, "%s ", text);
           $display ("INFO: Master program requested to display \"%s\".", text);
         end
-        "raw_wb" : begin
-          fs_i = $fscanf (fp_i, "%b %b %b %h %h %b %b %h ", cyc, stb, we, adr, sel, cti, bte, dat_o);
+        "end"    : begin
+          run <= 0;
+        end
+        "finish" : begin
+          $fclose (fp_i);
+          $fclose (fp_o);
+          $finish;
+        end
+        // bus generic instructions
+        "idle"   : begin
+          //fs_i = $fscanf (fp_i, "%s ", text);
+          //$display ("DEBUG: Counter should be txt = \"%0s\".", text);
+          fs_i = $fscanf (fp_i, "%d ", cnt);
+          $display ("DEBUG: Counter should be cnt = \"%d\".", cnt);
+          {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
           raw <= 1;
         end
         "write"  : begin
@@ -193,14 +208,13 @@ end else begin
           fs_i = $fscanf (fp_i, "%h %h ", adr, sel);
           dat_o <= {DW{IV}};
         end
-        "end"    : begin
-          run <= 0;
+        // wishbone specific instructions
+        "wb_bst", "wb_raw" : begin
+          fs_i = $fscanf (fp_i, "%d ", cnt);
+          fs_i = $fscanf (fp_i, "%b %b %b %h %h %b %b %h ", cyc, stb, we, adr, sel, cti, bte, dat_o);
+          if (inst == "wb_raw")  raw <= 1;
         end
-        "finish" : begin
-          $fclose (fp_i);
-          $fclose (fp_o);
-          $finish;
-        end
+        // the default is an idle bus
         default  : begin
           $display ("WARNING: Unrecognized instruction \"%s\".", inst);
           {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
