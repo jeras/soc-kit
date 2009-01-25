@@ -75,8 +75,7 @@ reg [SW-1:0] t_sel;
 reg    [2:0] t_cti;
 reg    [1:0] t_bte;
 reg [DW-1:0] t_dat_o;
-reg [DW-1:0] t_dat_m;
-
+reg [DW-1:0] t_dat_m;            // data mask
 
 // wishbone status
 wire    trn;       // transfer completion indicator
@@ -94,7 +93,9 @@ integer fp_o, fs_o = 0; // read output
 // program file parsing variables
 reg [8*8-1:0] inst, text;
 reg     [7:0] c;
+reg [8*8-1:0] endian;
 integer       width;
+integer       shift;
 integer       i;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -222,13 +223,21 @@ end else begin
           raw <= 1;
         end
         "write", "read" : begin
-          fs_i = $fscanf (fp_i, "%d %h ", width, t_adr);
+          // parsing
+          fs_i = $fscanf (fp_i, "%s %d %h ", endian, width, t_adr);
           if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", t_dat_o);
-          t_sel = (2**(width/8))-1 << (t_adr & ~AM);
-          t_dat_o = t_dat_o << (8*(t_adr & ~AM));
+          // processing
+          case (endian)
+            "be"    : shift = SW - width/8 - (t_adr & ~AM);
+            "le"    : shift =                (t_adr & ~AM);
+            default : $display ("ERROR: Parsing error: Endianness not specified corectly");
+          endcase
+          t_sel = (2**(width/8))-1 << shift;
           for (i=0; i<SW; i=i+1)
-            //t_dat_m = {t_dat_m [DW-8-1:0], (t_sel [i] ? 8'h00 : 8'hxx)};
             t_dat_m = {(t_sel [i] ? 8'h00 : 8'hxx), t_dat_m [DW-1:8]};
+            //t_dat_m = {t_dat_m [DW-8-1:0], (t_sel [i] ? 8'h00 : 8'hxx)};
+          t_dat_o = t_dat_o << (8*shift);
+          // applying signals to the bus
           cyc   <= 1'b1;
           stb   <= 1'b1;
           we    <= (inst == "write") ? 1'b1 : 1'b0;
@@ -246,7 +255,7 @@ end else begin
         end
         // the default is an idle bus
         default  : begin
-          $display ("WARNING: Unrecognized instruction \"%s\".", inst);
+          $display ("WARNING: Parsing error: Unrecognized instruction \"%s\".", inst);
           {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
         end
       endcase
