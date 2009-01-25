@@ -29,8 +29,6 @@ module wishbone_master #(
   parameter DW = `WB_DW,         // data bus width
   parameter SW = `WB_DW/8,       // byte select bus width
   parameter AM = {AW{1'b1}}-(SW-1), // log2(SW),
-  //parameter AM = log2(SW),
-  parameter DE = `WB_DE,         // data endianness ('BIG' or 'LITTLE')
   parameter IV = 1'bx,           // idle value (value of signals when bus is idle)
   // input file (program), output file (read data)
   parameter FILE_I = "",         // program filename
@@ -106,7 +104,7 @@ assign trn = cyc & stb & (ack | err | rty);
 assign rdy = ~cyc | trn & ((cti == 3'b000) | (cti == 3'b111));
 
 initial begin
-  $display ("DEBUG: Stating master");
+  $display ("DEBUG: Starting master");
   if (AUTO)  start (FILE_I, FILE_O);
   #200 $finish;
 end
@@ -138,8 +136,6 @@ end endtask
 
 integer cnt_clk = 0;
 integer position = 0;
-
-
 always @ (posedge clk) begin
   cnt_clk <= cnt_clk + 1;
 //  fs_i = $fscanf (fp_i, "%s ", instruction);
@@ -149,8 +145,6 @@ always @ (posedge clk) begin
   if (fs_i == -4) $finish;
   if (cnt_clk > 100) $finish;
 end
-
-integer character;
 
 always @ (posedge rst, posedge clk)
 if (rst) begin
