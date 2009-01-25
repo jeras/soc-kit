@@ -1,0 +1,15 @@
+write le  8 00000100       01
+write le  8 00000101     23
+write le  8 00000102   45
+write le  8 00000103 67
+write le 16 00000200     0123
+write le 16 00000202 4567
+write le 32 00000300 01234567
+write be  8 00000100 01
+write be  8 00000101   23
+write be  8 00000102     45
+write be  8 00000103       67
+write be 16 00000200 0123
+write be 16 00000202     4567
+write be 32 00000300 01234567
+finish
