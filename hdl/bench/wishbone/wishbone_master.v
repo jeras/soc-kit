@@ -28,6 +28,8 @@ module wishbone_master #(
   parameter AW = `WB_AW,         // address bus width
   parameter DW = `WB_DW,         // data bus width
   parameter SW = `WB_DW/8,       // byte select bus width
+  parameter AM = {AW{1'b1}}-(SW-1), // log2(SW),
+  //parameter AM = log2(SW),
   parameter DE = `WB_DE,         // data endianness ('BIG' or 'LITTLE')
   parameter IV = 1'bx,           // idle value (value of signals when bus is idle)
   // input file (program), output file (read data)
@@ -64,6 +66,18 @@ module wishbone_master #(
 // local signals                                                            //
 //////////////////////////////////////////////////////////////////////////////
 
+// temporal wishbone variables
+reg          t_cyc;
+reg          t_stb;
+reg          t_we;
+reg [AW-1:0] t_adr;
+reg [SW-1:0] t_sel;
+reg    [2:0] t_cti;
+reg    [1:0] t_bte;
+reg [DW-1:0] t_dat_o;
+reg [DW-1:0] t_dat_m;
+
+
 // wishbone status
 wire    trn;       // transfer completion indicator
 wire    rdy;       // bus redyness status
@@ -80,6 +94,8 @@ integer fp_o, fs_o = 0; // read output
 // program file parsing variables
 reg [8*8-1:0] inst, text;
 reg     [7:0] c;
+integer       width;
+integer       i;
 
 ///////////////////////////////////////////////////////////////////////////////
 // wishbone data path                                                        //
@@ -119,7 +135,6 @@ task stop; begin
   run = 0;
 end endtask
 
-reg t_cyc;
 integer cnt_clk = 0;
 integer position = 0;
 
@@ -156,7 +171,18 @@ end else begin
       // properly finish burst cycles
       if (cnt >  0)  cnt <= cnt - 1;
       if (cnt == 1)  cti <= 3'b111;
-    end
+      // burst address incrementer
+//      if (cti == 3'b010) begin
+//        incr = sw;
+//        mask = len_out*sw-1;
+//      end else begin
+//        incr = 0;
+//        mask = 0;
+//      end
+//      for (n=0; n<len_out-1; n=n+1) begin
+//        if (bte == 2'b00)  badr =  tadr          +          incr*n;
+//        else               badr = (tadr & ~mask) + ((tadr + incr*n) & mask);
+   end
     // handler for raw transfers
     if (raw) begin
       if (cnt >  0)  cnt <= cnt - 1;
@@ -191,22 +217,26 @@ end else begin
           $finish;
         end
         // bus generic instructions
-        "idle"   : begin
-          //fs_i = $fscanf (fp_i, "%s ", text);
-          //$display ("DEBUG: Counter should be txt = \"%0s\".", text);
-          fs_i = $fscanf (fp_i, "%d ", cnt);
-          $display ("DEBUG: Counter should be cnt = \"%d\".", cnt);
+        "idle" : begin
           {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
           raw <= 1;
         end
-        "write"  : begin
-          {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b1, 3'b000, 2'b00};
-          fs_i = $fscanf (fp_i, "%h %h %h ", adr, sel, dat_o);
-        end
-        "read"   : begin
-          {cyc, stb, we, cti, bte} <= {1'b1, 1'b1, 1'b0, 3'b000, 2'b00};
-          fs_i = $fscanf (fp_i, "%h %h ", adr, sel);
-          dat_o <= {DW{IV}};
+        "write", "read" : begin
+          fs_i = $fscanf (fp_i, "%d %h ", width, t_adr);
+          if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", t_dat_o);
+          t_sel = (2**(width/8))-1 << (t_adr & ~AM);
+          t_dat_o = t_dat_o << (8*(t_adr & ~AM));
+          for (i=0; i<SW; i=i+1)
+            //t_dat_m = {t_dat_m [DW-8-1:0], (t_sel [i] ? 8'h00 : 8'hxx)};
+            t_dat_m = {(t_sel [i] ? 8'h00 : 8'hxx), t_dat_m [DW-1:8]};
+          cyc   <= 1'b1;
+          stb   <= 1'b1;
+          we    <= (inst == "write") ? 1'b1 : 1'b0;
+          adr   <= t_adr & AM;
+          sel   <= t_sel;
+          cti   <= 3'b000;
+          bte   <= 2'b00;
+          dat_o <= (inst == "write") ? (t_dat_o ^ t_dat_m) : {DW{IV}};
         end
         // wishbone specific instructions
         "wb_bst", "wb_raw" : begin
@@ -228,49 +258,6 @@ end
 // tasks performing wishbone cycles                                          //
 ///////////////////////////////////////////////////////////////////////////////
 
-//// raw FIFO loading
-//task fifo_load;
-//  input [lw-1:0] line;  // raw line to be loaded to the FIFO
-//begin
-//  if (i_d + 1 < fl) begin
-//    fifo[i_w] <= line;  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl; 
-//  end else
-//    $display ("ERROR: %s: Wishbone master fifo overflow", name);
-//end
-//endtask
-//
-//// filling the space between cycles
-//task cyc_idle;
-//  input [32-1:0] len;   // the number of loaded IDLE cycles
-//  integer        n;
-//begin
-//  if (i_d + len < fl) begin
-//    for (n=0; n<len; n=n+1) begin
-//      fifo[i_w] = line0;  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
-//  end end else
-//    $display ("ERROR: %s: Wishbone master fifo overflow", name);
-//end
-//endtask
-//
-//// generating a single transfer
-//task cyc_single;
-//  input    [aw-1:0] adr;    // address
-//  input             we;     // write enable
-//  input    [sw-1:0] sel;    // byte select
-//  input    [dw-1:0] dat_o;  // output (write) data
-//  input    [dw-1:0] dat_i;  // expected input (read) data
-//  // local variables
-//  reg      [aw-1:0] tadr;   // truncated address
-//begin
-//  tadr = adr/sw*sw;  // zeroing constant address bits
-//  if (i_d + 1 < fl) begin
-//    fifo[i_w] = {1'b1, 1'b1, 1'b1, we, tadr, sel, 3'b000, {2{iv}}, dat_o, dat_i, 3'b100};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
-//    //   name     chk,  cyc,  stb, we,  adr, sel     cti,     bte, dat_o, dat_i, reply_x;
-//  end else
-//    $display ("ERROR: %s: Wishbone master fifo overflow", name);
-//end
-//endtask
-//
 //// generating a fixed length burst transfer
 //task cyc_burst;
 //  input    [aw-1:0] adr;    // address
