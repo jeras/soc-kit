@@ -27,7 +27,7 @@ module uart_tb ();
 
 // master program input and data output files
 //localparam M1_P = "hdl/bench/wishbone/wishbone_program.txt";
-localparam UART_TX = "fifo_program";
+localparam UART_TX = "hdl/bench/uart/uart_tx.txt";
 localparam UART_RX = "hdl/bench/uart/uart_rx.txt";
 
 // UART loop signal

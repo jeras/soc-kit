@@ -1,0 +1,24 @@
+[timestart] 0
+[size] 1920 1125
+[pos] -1 -1
+*-19.839291 144200 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] uart_tb.
+[treeopen] uart_tb.uart.
+@28
+uart_tb.loop
+uart_tb.uart.RxD
+uart_tb.uart.TxD
+@24
+uart_tb.uart.bit_rx[31:0]
+uart_tb.uart.bit_tx[31:0]
+@820
+uart_tb.uart.c_rx[7:0]
+uart_tb.uart.c_tx[7:0]
+@22
+uart_tb.uart.fp_rx[31:0]
+uart_tb.uart.fp_tx[31:0]
+@28
+uart_tb.uart.run
+@25
+uart_tb.uart.cnt_rx[31:0]
+uart_tb.uart.cnt_tx[31:0]

@@ -1,0 +1,4 @@
+iverilog -o uart -I hdl/bench/uart/ hdl/bench/uart/uart_model.v hdl/bench/uart/uart_tb.v
+vvp uart
+gtkwave -f test.vcd -a hdl/bench/uart/uart.sav
+
