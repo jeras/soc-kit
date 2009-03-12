@@ -2,7 +2,7 @@
 //                                                                          //
 //  WISHBONE bus interface testbench                                        //
 //                                                                          //
-//  Copyright (C) 2008  Iztok Jeras                                         //
+//  Copyright (C) 2008/2009  Iztok Jeras                                    //
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 //                                                                          //
@@ -22,6 +22,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 `timescale  1ns / 1ps
+
 `include "wishbone_defines.v"
 
 module wishbone_tb ();
