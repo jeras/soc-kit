@@ -1,0 +1,380 @@
+///////////////////////////////////////////////////////////////////////////////
+// bus master program                                                        //
+///////////////////////////////////////////////////////////////////////////////
+
+task ahb_program_master_slave_test;
+begin
+
+  //
+  // regular single transfers
+  //
+
+  // single access test (different data widths)
+  //                            haddr, hwrite, size,   hprot,       hwdata,       hrdata
+  ahb_master.cyc_single (32'h00000100, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'h01234567); // 32 bit write
+  ahb_master.cyc_single (32'h00000100,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+//   //                            haddr, hwrite, size,   hprot,       hwdata,       hrdata
+//   ahb_master.cyc_single (32'h00000100,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx);
+//   ahb_master.cyc_single (32'h00000102,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'hxxxx4567);
+//   ahb_master.cyc_single (32'h00000100,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'h01xxxxxx);
+//   ahb_master.cyc_single (32'h00000101,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxx23xxxx);
+//   ahb_master.cyc_single (32'h00000102,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxxxx45xx);
+//   ahb_master.cyc_single (32'h00000103,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxxxxxx67);
+//   //                            haddr, hwrite, size,   hprot,       hwdata,       hrdata
+//   ahb_master.cyc_single (32'h00000110, `WRITE, 3'd1, 4'b0011, 32'h0123xxxx, 32'h0123xxxx);
+//   ahb_master.cyc_single (32'h00000110,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx); // 32 bit read
+//   ahb_master.cyc_single (32'h00000112, `WRITE, 3'd1, 4'b0011, 32'hxxxx4567, 32'hxxxx4567);
+//   ahb_master.cyc_single (32'h00000110,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+//   //                            haddr, hwrite, size,   hprot,       hwdata,       hrdata
+//   ahb_master.cyc_single (32'h00000120, `WRITE, 3'd0, 4'b0011, 32'h01xxxxxx, 32'h01xxxxxx);
+//   ahb_master.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01xxxxxx); // 32 bit read
+//   ahb_master.cyc_single (32'h00000121, `WRITE, 3'd0, 4'b0011, 32'hxx23xxxx, 32'hxx23xxxx);
+//   ahb_master.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx); // 32 bit read
+//   ahb_master.cyc_single (32'h00000122, `WRITE, 3'd0, 4'b0011, 32'hxxxx45xx, 32'hxxxx45xx);
+//   ahb_master.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h012345xx); // 32 bit read
+//   ahb_master.cyc_single (32'h00000123, `WRITE, 3'd0, 4'b0011, 32'hxxxxxx67, 32'hxxxxxx67);
+//   ahb_master.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+// 
+//   //
+//   // regular burst transfers
+//   //
+// 
+//   // pause befor next test series
+//   ahb_master.cyc_idle   (32);
+// 
+//   data_x [16*dw-1:0] = {16*dw{1'bx}};
+// 
+//   // burst 4 access test
+//   data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+//   //                           haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b011, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b010, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b011, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_idle  (8);
+// 
+//   // burst 8 access test
+//   data_t [ 8*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03,
+//                         32'hAAAAAA04, 32'hBBBBBB05, 32'hCCCCCC06, 32'hDDDDDD07};
+//   //                           haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b100, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b101, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b100, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b101, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_idle  (8);
+// 
+//   // burst 16 access test
+//   data_t [16*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03,
+//                         32'hAAAAAA04, 32'hBBBBBB05, 32'hCCCCCC06, 32'hDDDDDD07,
+//                         32'hAAAAAA08, 32'hBBBBBB08, 32'hCCCCCC0A, 32'hDDDDDD0B,
+//                         32'hAAAAAA0C, 32'hBBBBBB0D, 32'hCCCCCC0E, 32'hDDDDDD0F};
+//   //                           haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b110, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b111, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b110, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b111, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_idle  (8);
+// 
+//   // unaligned burst 4 access test
+//   data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+//   //                           haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+//   ahb_master.cyc_burst (32'h00000104, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000104, `WRITE, 3'd2, 3'b011, 4'b0011, data_t, data_x, 0);
+//   ahb_master.cyc_burst (32'h00000104,  `READ, 3'd2, 3'b010, 4'b0011, data_x, data_t, 0);
+//   ahb_master.cyc_burst (32'h00000104,  `READ, 3'd2, 3'b011, 4'b0011, data_x, data_t, 0);
+// 
+//   //
+//   // ERROR response test from slave model
+//   //
+// 
+//   // pause befor next test series
+//   ahb_master.cyc_idle   (32);
+// 
+//   // ERROR response from slave test
+//   ahb_master.cyc_single (32'h00000200, `WRITE, 3'd2, 4'b0011, 32'hdeadbeef, 32'hxxxxxxxx); // 32 bit write
+//   ahb_master.cyc_idle   (2);
+//   ahb_master.cyc_single (32'h00000200,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'hdeadbeef); // 32 bit read
+//   //                            haddr, hwrite, size,   hprot,       hwdata,       hrdata
+// 
+//   //
+//   // decoder and default slave tests
+//   //
+// 
+//   // pause befor next test series
+//   ahb_master.cyc_idle   (32);
+// 
+//   // switching from slave to slave
+//   ahb_master.cyc_single (32'h00000140, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 0
+//   ahb_master.cyc_single (32'h00000140,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 0
+//   ahb_master.cyc_single (32'h00000240, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 1
+//   ahb_master.cyc_single (32'h00000240,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 1 // skipped due to error response
+//   ahb_master.cyc_single (32'h00000440, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 2
+//   ahb_master.cyc_single (32'h00000440,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 2
+// 
+//   // pause befor next test series
+//   ahb_master.cyc_idle   (32);
+// 
+//   // OKAY response from default slave
+//   ahb_master.cyc_single (32'h10000000, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'h01234567); // 32 bit write
+// 
+//   // ERROR response from default slave
+//   ahb_master.cyc_single (32'h10000000, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write
+// //  ahb_master.cyc_idle   (2);
+//   ahb_master.cyc_single (32'h10000000,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+// 
+//   // pause befor next test series
+//   ahb_master.cyc_idle   (32);
+
+end
+endtask
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// arbiter test program                                                      //
+///////////////////////////////////////////////////////////////////////////////
+
+/*
+task ahb_program_arbiter_test;
+begin
+   //ahb_master0.cyc_idle (10);
+  //                    len,         addr,   we, size, prot,       hwdata0,       hrdata
+   ahb_master_0.cyc_single (32'h00000100, 1'b1, 3'd2, 4'd0, 32'h01234567, 32'hxxxxxxxx); // 32 bit write
+   ahb_master_0.cyc_idle   (4);
+   ahb_master_0.cyc_single (32'h00000100, 1'b0, 3'd2, 4'd0, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+   ahb_master_0.cyc_single (32'h00000104, 1'b1, 3'd2, 4'd0, 32'h01111111, 32'hxxxxxxxx); // 32 bit write   
+   ahb_master_0.cyc_idle   (4);
+   ahb_master_0.cyc_single (32'h00000104, 1'b0, 3'd2, 4'd0, 32'hxxxxxxxx, 32'h01111111); // 32 bit read
+   ahb_master_0.cyc_idle   (8);
+   
+  // pause befor next test series
+//  ahb_master0.cyc_idle   (1);
+
+  data_x [16*dw-1:0] = {16*dw{1'bx}};
+
+  // burst 4 access test
+  data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+  //                           haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+  ahb_master_0.cyc_idle   (1);
+  ahb_master_0.cyc_burst (32'h00000110, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_idle   (1);
+
+  ahb_master_0.cyc_single (32'h00000110, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'h01234567); // 32 bit write
+  ahb_master_0.cyc_single (32'h00000110,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+//  ahb_master_0.cyc_single (32'h00000110,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx);
+//  ahb_master_0.cyc_single (32'h00000112,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'hxxxx4567);
+  ahb_master_0.cyc_burst (32'h00000110, `WRITE, 3'd2, 3'b011, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_idle  (20);
+
+
+  //ahb_master1.cyc_idle   (10);
+  data_x [16*dw-1:0] = {16*dw{1'bx}};
+
+  // burst 4 access test
+  data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+
+  //                    len,         addr,   we, size, prot,       hwdata0,       hrdata
+  ahb_master_1.cyc_idle (1);
+  ahb_master_1.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+  ahb_master_1.cyc_single (32'h00000140, 1'b1, 3'd2, 4'd0, 32'h07654321, 32'hxxxxxxxx); // 32 bit write
+  ahb_master_1.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+  ahb_master_1.cyc_single (32'h00000140, 1'b0, 3'd2, 4'd0, 32'hxxxxxxxx, 32'h01234567); // 32 bit read   
+  ahb_master_1.cyc_single (32'h00000144, 1'b1, 3'd2, 4'd0, 32'h0a5a5a5a, 32'hxxxxxxxx); // 32 bit write
+  ahb_master_1.cyc_single (32'h00000144, 1'b0, 3'd2, 4'd0, 32'hxxxxxxxx, 32'h01234567); // 32 bit read   
+  ahb_master_1.cyc_single (32'h00000148, 1'b1, 3'd2, 4'd0, 32'h00000000, 32'hxxxxxxxx); // 32 bit write
+  ahb_master_1.cyc_single (32'h00000148, 1'b0, 3'd2, 4'd0, 32'hxxxxxxxx, 32'h01234567); // 32 bit read   
+
+  ahb_master_1.cyc_idle   (10);
+end
+endtask
+
+
+///////////////////////////////////////////////////////////////////////////////
+// bus master program                                                        //
+///////////////////////////////////////////////////////////////////////////////
+
+task ahb_program_master_slave_test;
+begin
+
+  //
+  // regular single transfers
+  //
+
+  // single access test (different data widths)
+  //                              haddr, hwrite, size,   hprot,       hwdata,       hrdata
+  ahb_master_0.cyc_single (32'h00000100, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'h01234567); // 32 bit write
+  ahb_master_0.cyc_single (32'h00000100,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+  //                              haddr, hwrite, size,   hprot,       hwdata,       hrdata
+  ahb_master_0.cyc_single (32'h00000100,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx);
+  ahb_master_0.cyc_single (32'h00000102,  `READ, 3'd1, 4'b0011, 32'hxxxxxxxx, 32'hxxxx4567);
+  ahb_master_0.cyc_single (32'h00000100,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'h01xxxxxx);
+  ahb_master_0.cyc_single (32'h00000101,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxx23xxxx);
+  ahb_master_0.cyc_single (32'h00000102,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxxxx45xx);
+  ahb_master_0.cyc_single (32'h00000103,  `READ, 3'd0, 4'b0011, 32'hxxxxxxxx, 32'hxxxxxx67);
+  //                              haddr, hwrite, size,   hprot,       hwdata,       hrdata
+  ahb_master_0.cyc_single (32'h00000110, `WRITE, 3'd1, 4'b0011, 32'h0123xxxx, 32'h0123xxxx);
+  ahb_master_0.cyc_single (32'h00000110,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx); // 32 bit read
+  ahb_master_0.cyc_single (32'h00000112, `WRITE, 3'd1, 4'b0011, 32'hxxxx4567, 32'hxxxx4567);
+  ahb_master_0.cyc_single (32'h00000110,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+  //                              haddr, hwrite, size,   hprot,       hwdata,       hrdata
+  ahb_master_0.cyc_single (32'h00000120, `WRITE, 3'd0, 4'b0011, 32'h01xxxxxx, 32'h01xxxxxx);
+  ahb_master_0.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01xxxxxx); // 32 bit read
+  ahb_master_0.cyc_single (32'h00000121, `WRITE, 3'd0, 4'b0011, 32'hxx23xxxx, 32'hxx23xxxx);
+  ahb_master_0.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h0123xxxx); // 32 bit read
+  ahb_master_0.cyc_single (32'h00000122, `WRITE, 3'd0, 4'b0011, 32'hxxxx45xx, 32'hxxxx45xx);
+  ahb_master_0.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h012345xx); // 32 bit read
+  ahb_master_0.cyc_single (32'h00000123, `WRITE, 3'd0, 4'b0011, 32'hxxxxxx67, 32'hxxxxxx67);
+  ahb_master_0.cyc_single (32'h00000120,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+
+  //
+  // regular burst transfers
+  //
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+  data_x [16*dw-1:0] = {16*dw{1'bx}};
+
+  // burst 4 access test
+  data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+  //                             haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b011, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b010, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b011, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_idle  (8);
+
+  // burst 8 access test
+  data_t [ 8*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03,
+                        32'hAAAAAA04, 32'hBBBBBB05, 32'hCCCCCC06, 32'hDDDDDD07};
+  //                             haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b100, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b101, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b100, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b101, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_idle  (8);
+
+  // burst 16 access test
+  data_t [16*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03,
+                        32'hAAAAAA04, 32'hBBBBBB05, 32'hCCCCCC06, 32'hDDDDDD07,
+                        32'hAAAAAA08, 32'hBBBBBB08, 32'hCCCCCC0A, 32'hDDDDDD0B,
+                        32'hAAAAAA0C, 32'hBBBBBB0D, 32'hCCCCCC0E, 32'hDDDDDD0F};
+  //                             haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b110, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100, `WRITE, 3'd2, 3'b111, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b110, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_burst (32'h00000100,  `READ, 3'd2, 3'b111, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_idle  (8);
+
+  // unaligned burst 4 access test
+  data_t [ 4*dw-1:0] = {32'hAAAAAA00, 32'hBBBBBB01, 32'hCCCCCC02, 32'hDDDDDD03};
+  //                             haddr, hwrite, size,   brst,   hprot, hwdata, hrdata
+  ahb_master_0.cyc_burst (32'h00000104, `WRITE, 3'd2, 3'b010, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000104, `WRITE, 3'd2, 3'b011, 4'b0011, data_t, data_x, 0);
+  ahb_master_0.cyc_burst (32'h00000104,  `READ, 3'd2, 3'b010, 4'b0011, data_x, data_t, 0);
+  ahb_master_0.cyc_burst (32'h00000104,  `READ, 3'd2, 3'b011, 4'b0011, data_x, data_t, 0);
+
+  //
+  // ERROR response test from slave model
+  //
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+  // ERROR response from slave test
+  ahb_master_0.cyc_single (32'h00000200, `WRITE, 3'd2, 4'b0011, 32'hdeadbeef, 32'hxxxxxxxx); // 32 bit write
+  ahb_master_0.cyc_idle   (2);
+  ahb_master_0.cyc_single (32'h00000200,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'hdeadbeef); // 32 bit read
+  //                              haddr, hwrite, size,   hprot,       hwdata,       hrdata
+
+  //
+  // decoder and default slave tests
+  //
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+  // switching from slave to slave
+  ahb_master_0.cyc_single (32'h00000140, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 0
+  ahb_master_0.cyc_single (32'h00000140,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 0
+  ahb_master_0.cyc_single (32'h00000240, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 1
+  ahb_master_0.cyc_single (32'h00000240,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 1 // skipped due to error response
+  ahb_master_0.cyc_single (32'h00000440, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write // slave 2
+  ahb_master_0.cyc_single (32'h00000440,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read  // slave 2
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+  // OKAY response from default slave
+  ahb_master_0.cyc_single (32'h10000000, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'h01234567); // 32 bit write
+
+  // ERROR response from default slave
+  ahb_master_0.cyc_single (32'h10000000, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write
+//  ahb_master_0.cyc_idle   (2);
+  ahb_master_0.cyc_single (32'h10000000,  `READ, 3'd2, 4'b0011, 32'hxxxxxxxx, 32'h01234567); // 32 bit read
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+end
+endtask
+
+///////////////////////////////////////////////////////////////////////////////
+// bus master program                                                        //
+///////////////////////////////////////////////////////////////////////////////
+
+task ahb_program_master_error_test;
+begin
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle   (32);
+
+  //
+  // irregular bus transfers, should trigger an ERROR from the bus monitor
+  //
+
+  ahb_master_0.cyc_single (32'h00000000, `WRITE, 3'd2, 4'b0011, 32'h01234567, 32'hxxxxxxxx); // 32 bit write
+  //                        chk,        haddr, htrans, hwrite, hsize, hburst,   hprot,       hwdata,       hrdata, hresp
+  ahb_master_0.fifo_load ({1'b0, 32'h00000000,   `SEQ, `WRITE,  3'd2, 3'b000, 4'b0011, 32'h01234567, 32'hxxxxxxxx, `OKAY});
+//reg    [lw-1:0] line0 = {1'b0, {aw{1'bx}},  `IDLE,   1'bx, 3'bxxx, 3'bxxx, 4'bxxxx, {dw{1'bx}}, {dw{1'bx}}, {rw{1'bx}}};
+//                name     chk,      haddr, htrans, hwrite,  hsize, hburst,   hprot,     hwdata,   hrdata_t,    hresp_t
+
+  //
+  // illegal bus cycles caused by the bus master
+  //
+
+  // pause befor next test series
+  ahb_master_0.cyc_idle  (32);
+
+end
+endtask
+
+*/
+
+

@@ -1,0 +1,4 @@
+iverilog -o amba -I hdl/bench/amba/ hdl/bench/amba/amba_ahb_master.v hdl/bench/amba/amba_ahb_slave.v hdl/bench/amba/amba_ahb_monitor.v hdl/bench/amba/amba_ahb_tb.v
+vvp amba
+#gtkwave -f test.vcd -a hdl/bench/uart/uart.sav
+
