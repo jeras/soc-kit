@@ -27,17 +27,19 @@
 module amba_ahb_tb ();
 
 // wishbone paramaters
-parameter aw = `AW;     // address bus width
-parameter dw = `DW;     // data bus width
-parameter de = `DE;     // endianness
-parameter rw = `RW;     // response width
+parameter AW = `AW;     // address bus width
+parameter DW = `DW;     // data bus width
+parameter DE = `DE;     // endianness
+parameter RW = `RW;     // response width
 
-parameter mn = 1;       // number of bus masters
-parameter sn = 3;       // number of bus slaves
+parameter MN = 1;       // number of bus masters
+parameter SN = 3;       // number of bus slaves
 
 // AMBA AHB system signals
 reg           hclk;     // Bus clock
 reg           hresetn;  // Reset (active low)
+
+/*
       //MASTER No 1
 wire [aw-1:0] haddr0;    // Address bus
 wire    [1:0] htrans0;   // Transfer type
@@ -58,20 +60,22 @@ wire    [3:0] hprot1;    // Protection control
 wire [dw-1:0] hwdata1;   // Write data bus
 wire [dw-1:0] hrdata1;
 wire          hresp1;    // 
+*/
 
 // AMBA AHB master/arbiter to decoder/slave
-wire [aw-1:0] haddr;    // Address bus
+wire [AW-1:0] haddr;    // Address bus
 wire    [1:0] htrans;   // Transfer type
 wire          hwrite;   // Transfer direction
 wire    [2:0] hsize;    // Transfer size
 wire    [2:0] hburst;   // Burst type
 wire    [3:0] hprot;    // Protection control
-wire [dw-1:0] hwdata;   // Write data bus
-
+wire [DW-1:0] hwdata;   // Write data bus
 // AMBA AHB slave signals
-wire [dw-1:0] hrdata;   // Read data bus
+wire [DW-1:0] hrdata;   // Read data bus
 wire          hready;   // Transfer done
-wire [rw-1:0] hresp;    // Transfer response
+wire [RW-1:0] hresp;    // Transfer response
+
+/*
 // AMBA AHB decoder signals
 wire [dw-1:0] hrdata_s [0:sn-1];   // Read data bus
 wire          hready_s [0:sn-1];   // Transfer done
@@ -80,6 +84,7 @@ wire [sn-1:0] hsel;     // Slave select
 // AMBA AHB arbiter signals
 // slave data check
 wire          error;    //
+*/
 
 // temporary signals for bursts
 // the max burst length is 1kB
@@ -91,18 +96,17 @@ wire          master_status;
 // system clock, reset and .vcd dumpfile                                     //
 ///////////////////////////////////////////////////////////////////////////////
 
-// including master programs from external files
-`include "amba_ahb_program.vh"
-
-assign master_status = ahb_master_0.empty
-                     & ahb_master_1.empty;
+//assign master_status = ahb_master_0.empty
+//                     & ahb_master_1.empty;
+//assign master_status = ahb_master.empty;
 
 initial begin
-  wait (master_status) #1 ahb_program_arbiter_test;
+//  wait (master_status) #1 ahb_program_arbiter_test;
 //  wait (master_status) #1 ahb_program_master_slave_test;
-  wait (master_status) #1 ahb_program_master_error_test;
+//  wait (master_status) #1 ahb_program_master_error_test;
   #1 wait (master_status) #100 $finish;
 end
+
 
 // initial reset pulse
 initial begin
@@ -118,13 +122,14 @@ always
 // request for a dumpfile
 initial begin
   $dumpfile("test.vcd");
-  $dumpvars(0, amba_ahb_test);
+  $dumpvars(0, amba_ahb_tb);
 end
 
 ///////////////////////////////////////////////////////////////////////////////
 // bus masters                                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
+/*
 amba_ahb_master #(
   .aw        (aw),
   .dw        (dw),
@@ -174,11 +179,38 @@ amba_ahb_master #(
   // error (unexpected received cycle values or cycle timeout)
   .error     (error)
 );
+*/
+
+amba_ahb_master #(
+  .AW        (AW),
+  .DW        (DW),
+  .DE        (DE),
+  .NAME      ("master")
+) ahb_master (
+  // AMBA AHB system signals
+  .hclk      (hclk),
+  .hresetn   (hresetn),
+  // AMBA AHB master signals
+  .haddr     (haddr),
+  .htrans    (htrans),
+  .hwrite    (hwrite),
+  .hsize     (hsize),
+  .hburst    (hburst),
+  .hprot     (hprot),
+  .hwdata    (hwdata),
+  // AMBA AHB slave signals
+  .hrdata    (hrdata),
+  .hready    (hready),
+  .hresp     (hresp),
+  // error (unexpected received cycle values or cycle timeout)
+  .error     (error)
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 // arbiter                                                                   //
 ///////////////////////////////////////////////////////////////////////////////
-   
+
+/*
 amba_ahb_arbiter arbiter(
 			 hclk, 
 			 hresetn,
@@ -206,11 +238,13 @@ amba_ahb_arbiter arbiter(
 			 hready,
 			 hresp
 );
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // bus decoder and dummy slave                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
+/*
 amba_ahb_decoder #(
   // bus width and endianness parameters
   .aw        (aw),
@@ -238,11 +272,45 @@ amba_ahb_decoder #(
   // AMBA AHB decoder output signals (slave sn-1,...,1,0)
   .hsel      (hsel)
 );
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // bus slaves                                                                //
 ///////////////////////////////////////////////////////////////////////////////
 
+amba_ahb_slave #(
+  // bus width and endianness parameters
+  .AW        (AW),
+  .DW        (DW),
+  .DE        (DE),
+  // access latencies
+  .LW_NS     (2),
+  .LW_S      (0),
+  .LR_NS     (1),
+  .LR_S      (0)
+) ahb_slave (
+  // AMBA AHB system signals
+  .hclk      (hclk),
+  .hresetn   (hresetn),
+  // AMBA AHB decoder signals
+  .hsel      (1'b1),
+  // AMBA AHB master signals
+  .haddr     (haddr),
+  .htrans    (htrans),
+  .hwrite    (hwrite),
+  .hsize     (hsize),
+  .hburst    (hburst),
+  .hprot     (hprot),
+  .hwdata    (hwdata),
+  // AMBA AHB slave signals
+  .hrdata    (hrdata),
+  .hready    (hready),
+  .hresp     (hresp),
+  // control signals
+  .error     (1'b0)
+);
+
+/*
 amba_ahb_slave #(
   // bus width and endianness parameters
   .aw        (aw),
@@ -338,6 +406,7 @@ amba_ahb_slave #(
   // control signals
   .error     (1'b0)
 );
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // bus monitor                                                               //
@@ -345,9 +414,9 @@ amba_ahb_slave #(
 
 amba_ahb_monitor #(
   // bus width and endianness parameters
-  .aw        (aw),
-  .dw        (dw),
-  .de        (de)
+  .AW        (AW),
+  .DW        (DW),
+  .DE        (DE)
 ) ahb_monitor (
   // AMBA AHB system signals
   .hclk      (hclk),

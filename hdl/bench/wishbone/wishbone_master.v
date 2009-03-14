@@ -64,16 +64,11 @@ module wishbone_master #(
 // local signals                                                            //
 //////////////////////////////////////////////////////////////////////////////
 
-// temporal wishbone variables
-reg          t_cyc;
-reg          t_stb;
-reg          t_we;
+// temporal wishbone variables (used for parsing)
 reg [AW-1:0] t_adr;
 reg [SW-1:0] t_sel;
-reg    [2:0] t_cti;
-reg    [1:0] t_bte;
-reg [DW-1:0] t_dat_o;
-reg [DW-1:0] t_dat_m;            // data mask
+reg [DW-1:0] t_dat;
+reg [DW-1:0] t_mask;
 
 // wishbone status
 wire    trn;       // transfer completion indicator
@@ -167,11 +162,16 @@ end else begin
     // in the event of a data transfer
     if (trn) begin
       // sent the data to the output file
-      if (~we)  $fwrite (fp_o, "%h #", dat_i);
-      if (ack)  $fwrite (fp_o, " ack", dat_i);
-      if (err)  $fwrite (fp_o, " err", dat_i);
-      if (rty)  $fwrite (fp_o, " rty", dat_i);
-                $fwrite (fp_o, "/n"  , dat_i);
+      if (~we)  $fwrite (fp_o, "%h", dat_i);
+      case (instr)
+        "write", "read" : begin end
+        default : begin
+          if (ack)  $fwrite (fp_o, " ack");
+          if (err)  $fwrite (fp_o, " err");
+          if (rty)  $fwrite (fp_o, " rty");
+        end
+      endcase
+      $fwrite (fp_o, "/n");
       // properly finish burst cycles
       if (cnt >  0)  cnt <= cnt - 1;
       if (cnt == 1)  cti <= 3'b111;
@@ -186,7 +186,7 @@ end else begin
 //      for (n=0; n<len_out-1; n=n+1) begin
 //        if (bte == 2'b00)  badr =  tadr          +          incr*n;
 //        else               badr = (tadr & ~mask) + ((tadr + incr*n) & mask);
-   end
+    end
     // handler for raw transfers
     if (raw) begin
       if (cnt >  0)  cnt <= cnt - 1;
@@ -235,7 +235,7 @@ end else begin
         "write", "read" : begin
           // parsing
           fs_i = $fscanf (fp_i, "%s %d %h ", endian, width, t_adr);
-          if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", t_dat_o);
+          if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", t_dat);
           // processing
           case (endian)
             "be"    : shift = SW - width/8 - (t_adr & ~AM);
@@ -244,9 +244,9 @@ end else begin
           endcase
           t_sel = (2**(width/8))-1 << shift;
           for (i=0; i<SW; i=i+1)
-            t_dat_m = {(t_sel [i] ? 8'h00 : 8'hxx), t_dat_m [DW-1:8]};
-            //t_dat_m = {t_dat_m [DW-8-1:0], (t_sel [i] ? 8'h00 : 8'hxx)};
-          t_dat_o = t_dat_o << (8*shift);
+            t_mask = {(t_sel [i] ? 8'h00 : 8'hxx), t_mask [DW-1:8]};
+            //t_mask = {t_mask [DW-8-1:0], (t_sel [i] ? 8'h00 : 8'hxx)};
+          t_dat = t_dat << (8*shift);
           // applying signals to the bus
           cyc   <= 1'b1;
           stb   <= 1'b1;
@@ -255,7 +255,7 @@ end else begin
           sel   <= t_sel;
           cti   <= 3'b000;
           bte   <= 2'b00;
-          dat_o <= (inst == "write") ? (t_dat_o ^ t_dat_m) : {DW{IV}};
+          dat_o <= (inst == "write") ? (t_dat ^ t_mask) : {DW{IV}};
         end
         // wishbone specific instructions
         "wb_bst", "wb_raw" : begin

@@ -25,19 +25,17 @@
 
 module amba_ahb_monitor #(
   // bus paramaters
-  parameter aw = `AW,    // address bus width
-  parameter dw = `DW,    // data bus width
-  parameter de = `DE,    // endianess
-  parameter rw = `RW,    // response signal width
+  parameter AW = `AW,    // address bus width
+  parameter DW = `DW,    // data bus width
+  parameter DE = `DE,    // endianess
+  parameter RW = `RW,    // response signal width
   // instance name to be used in messages
-  parameter name = "AHB monitor",
+  parameter NAME = "AHB monitor",
   // memory parameters
-  parameter ms = 1024,   // memory size (in Bytes)
-  // internal parameter
-  parameter cw = 32,     // cycle and burst length couner widths
+  parameter MS = 1024,   // memory size (in Bytes)
   // verbosity level
-  parameter v_trn = 1,
-  parameter v_err = 1
+  parameter V_TRN = 1,
+  parameter V_ERR = 1
 )(
   // AMBA AHB system signals
   input  wire          hclk,     // Bus clock
@@ -45,20 +43,20 @@ module amba_ahb_monitor #(
   // AMBA AHB decoder signal
   input  wire          hsel,     // Slave select
   // AMBA AHB master signals
-  input  wire [aw-1:0] haddr,    // Address bus
+  input  wire [AW-1:0] haddr,    // Address bus
   input  wire    [1:0] htrans,   // Transfer type
   input  wire          hwrite,   // Transfer direction
   input  wire    [2:0] hsize,    // Transfer size
   input  wire    [2:0] hburst,   // Burst type
   input  wire    [3:0] hprot,    // Protection control
-  input  wire [dw-1:0] hwdata,   // Write data bus
+  input  wire [DW-1:0] hwdata,   // Write data bus
   // AMBA AHB slave signals
-  input  wire [dw-1:0] hrdata,   // Read data bus
+  input  wire [DW-1:0] hrdata,   // Read data bus
   input  wire          hready,   // Transfer done
-  input  wire [rw-1:0] hresp,    // Transfer response
+  input  wire [RW-1:0] hresp     // Transfer response
 );
 
-localparam bw = dw/8;  // data bus width in Bytes
+localparam bw = DW/8;  // data bus width in Bytes
 
 //////////////////////////////////////////////////////////////////////////////
 // local signals                                                            //
@@ -71,7 +69,7 @@ initial
   $timeformat (-9, 1, "ns", 10);
 
 // cycle timeout couner
-reg  [cw-1:0] timeout_cnt;
+integer timeout_cnt;
 
 // registered AHB input signals
 // _p - delayed for one clock Period
@@ -79,31 +77,31 @@ reg  [cw-1:0] timeout_cnt;
 // _b - value stored from Burst start to end
 reg           hresetn_r, hresetn_p;   
 reg           hsel_r,    hsel_p;   
-reg  [aw-1:0] haddr_r,   haddr_p,   haddr_b;
+reg  [AW-1:0] haddr_r,   haddr_p,   haddr_b;
 reg     [1:0] htrans_r,  htrans_p;
 reg           hwrite_r,  hwrite_p;
 reg     [2:0] hsize_r,   hsize_p;
 reg     [2:0] hburst_r,  hburst_p;
 reg     [3:0] hprot_r,   hprot_p;
-reg  [dw-1:0] hwdata_r,  hwdata_p;
-reg  [dw-1:0] hrdata_r,  hrdata_p;
+reg  [DW-1:0] hwdata_r,  hwdata_p;
+reg  [DW-1:0] hrdata_r,  hrdata_p;
 reg           hready_r,  hready_p;
-reg  [rw-1:0] hresp_r,   hresp_p;
+reg  [RW-1:0] hresp_r,   hresp_p;
 
 // slave memory
-reg     [7:0] mem [0:ms-1];
+reg     [7:0] mem [0:MS-1];
 
 genvar i;
 
 wire    [7:0] bytes;
-wire [dw-1:0] wdata;    // write data buse used for endian byte swap
-wire [dw-1:0] rdata;    // read data buse used for endian byte swap
+wire [DW-1:0] wdata;    // write data buse used for endian byte swap
+wire [DW-1:0] rdata;    // read data buse used for endian byte swap
 wire          trn;      // read or write transfer
 wire          trn_reg;  // transfer request
 wire          trn_ack;  // transfer acknowledge
 
 // burst control signals
-wire [aw-1:0] burst_msk;  // burst address mask for wrapped bursts
+wire [AW-1:0] burst_msk;  // burst address mask for wrapped bursts
 reg  [32-1:0] burst_cnt;  // counter of burst beats
 wire [32-1:0] burst_len;  // expected number of burst beats
 
@@ -114,45 +112,45 @@ wire [32-1:0] burst_len;  // expected number of burst beats
 // signals delayed for a single clock period
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
-  hresetn_p <= #1 1'b0;
-  htrans_p  <= #1 `IDLE;
-  hready_p  <= #1 1'b0;
-  hresp_p   <= #1 `OKAY;
+  hresetn_p <= 1'b0;
+  htrans_p  <= `IDLE;
+  hready_p  <= 1'b0;
+  hresp_p   <= `OKAY;
 end else begin
-  hresetn_p <= #1 1'b1;
-  hsel_p    <= #1 hsel;
-  haddr_p   <= #1 haddr;
-  htrans_p  <= #1 htrans;
-  hwrite_p  <= #1 hwrite;
-  hsize_p   <= #1 hsize;
-  hburst_p  <= #1 hburst;
-  hprot_p   <= #1 hprot;
-  hwdata_p  <= #1 hwdata;
-  hrdata_p  <= #1 hrdata;
-  hready_p  <= #1 hready;
-  hresp_p   <= #1 hresp;
+  hresetn_p <= 1'b1;
+  hsel_p    <= hsel;
+  haddr_p   <= haddr;
+  htrans_p  <= htrans;
+  hwrite_p  <= hwrite;
+  hsize_p   <= hsize;
+  hburst_p  <= hburst;
+  hprot_p   <= hprot;
+  hwdata_p  <= hwdata;
+  hrdata_p  <= hrdata;
+  hready_p  <= hready;
+  hresp_p   <= hresp;
 end
 
 // signals registered for the time of an AHB transfer cycle
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
-  hresetn_r <= #1 1'b0;
-  htrans_r  <= #1 `IDLE;
-  hready_r  <= #1 1'b0;
-  hresp_r   <= #1 `OKAY;
+  hresetn_r <= 1'b0;
+  htrans_r  <= `IDLE;
+  hready_r  <= 1'b0;
+  hresp_r   <= `OKAY;
 end else if (hready) begin
-  hresetn_r <= #1 1'b1;
-  hsel_r    <= #1 hsel;
-  haddr_r   <= #1 haddr;
-  htrans_r  <= #1 htrans;
-  hwrite_r  <= #1 hwrite;
-  hsize_r   <= #1 hsize;
-  hburst_r  <= #1 hburst;
-  hprot_r   <= #1 hprot;
-  hwdata_r  <= #1 hwdata;
-  hrdata_r  <= #1 hrdata;
-  hready_r  <= #1 hready;
-  hresp_r   <= #1 hresp;
+  hresetn_r <= 1'b1;
+  hsel_r    <= hsel;
+  haddr_r   <= haddr;
+  htrans_r  <= htrans;
+  hwrite_r  <= hwrite;
+  hsize_r   <= hsize;
+  hburst_r  <= hburst;
+  hprot_r   <= hprot;
+  hwdata_r  <= hwdata;
+  hrdata_r  <= hrdata;
+  hready_r  <= hready;
+  hresp_r   <= hresp;
 end
 
 //////////////////////////////////////////////////////////////////////////////
@@ -162,10 +160,10 @@ end
 // cycle and burst length couners
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
-  timeout_cnt <= #1 0;
+  timeout_cnt <= 0;
 end else begin
   if (hready | (htrans_r != `IDLE))
-  timeout_cnt <= #1 timeout_cnt + 1;
+  timeout_cnt <= timeout_cnt + 1;
 end
 
 //////////////////////////////////////////////////////////////////////////////
@@ -183,7 +181,7 @@ generate
   for (i=0; i<bw; i=i+1) begin
     always @(posedge hclk) begin
       if (trn & hwrite_r & (hresp == `OKAY)) begin
-        if ((haddr_r%bw <= i) & (i < (haddr_r%bw + bytes)))  mem [haddr_r/bw*bw+i] <= #1 hwdata [8*i+:8];
+        if ((haddr_r%bw <= i) & (i < (haddr_r%bw + bytes)))  mem [haddr_r/bw*bw+i] <= hwdata [8*i+:8];
       end
     end
   end
@@ -200,20 +198,20 @@ endgenerate
 // reporting transfer cycles                                                //
 //////////////////////////////////////////////////////////////////////////////
 
-generate if (v_trn) begin
+generate if (V_TRN) begin
 
 initial begin
   $timeformat (-9, 1, "ns", 10);
-  $display ("DEBUG: t=%t : %s: ", $time, name, "  --------------------------------------------------------------------------------------------------- ");
-  $display ("DEBUG: t=%t : %s: ", $time, name, " | HADDR    | HTRANS | HBURST | HWRITE | HSIZE   | HPROT[0]     | HWDATA   | HRDATA   | HRESP || bst |");
-  $display ("DEBUG: t=%t : %s: ", $time, name, "  --------------------------------------------------------------------------------------------------- ");
+  $display ("DEBUG: t=%t : %s: ", $time, NAME, "  --------------------------------------------------------------------------------------------------- ");
+  $display ("DEBUG: t=%t : %s: ", $time, NAME, " | HADDR    | HTRANS | HBURST | HWRITE | HSIZE   | HPROT[0]     | HWDATA   | HRDATA   | HRESP || bst |");
+  $display ("DEBUG: t=%t : %s: ", $time, NAME, "  --------------------------------------------------------------------------------------------------- ");
 end
 
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
-  $display ("DEBUG: t=%t : %s: ", $time, name, "HRESETN was asserted.");
+  $display ("DEBUG: t=%t : %s: ", $time, NAME, "HRESETN was asserted.");
 end else if (trn & hsel_r) begin
-  $display ("DEBUG: t=%t : %s: ", $time, name, " | ",
+  $display ("DEBUG: t=%t : %s: ", $time, NAME, " | ",
     "%h | ",
       haddr_r,
     "%s | ",
@@ -260,7 +258,7 @@ end else if (trn & hsel_r) begin
                               "*****" ,
     "%4d |", burst_cnt
   );
-  debug_cnt <= #1 debug_cnt + 1;
+  debug_cnt <= debug_cnt + 1;
 end
 
 end endgenerate
@@ -277,25 +275,25 @@ always @(posedge hclk)
 if (hresetn_p & ((htrans_p == `NONSEQ) | (htrans_p == `SEQ)) & ~hready_p & (hresp == `IDLE)) begin
   // address signal changes
   if (hsel_p   !== hsel)
-    $display ("ERROR: t=%t : %s: HSEL   changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HSEL   changed during a wait state.", $time, NAME);
   if (haddr_p  !== haddr)
-    $display ("ERROR: t=%t : %s: HADDR  changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HADDR  changed during a wait state.", $time, NAME);
   // control signal changes
   if (htrans_p !== htrans) begin
     if (htrans != `BUSY)
-    $display ("ERROR: t=%t : %s: HTRANS changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HTRANS changed during a wait state.", $time, NAME);
   end
   if (hwrite_p !== hwrite)
-    $display ("ERROR: t=%t : %s: HWRITE changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HWRITE changed during a wait state.", $time, NAME);
   if (hsize_p  !== hsize)
-    $display ("ERROR: t=%t : %s: HSIZE  changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HSIZE  changed during a wait state.", $time, NAME);
   if (hburst_p !== hburst)
-    $display ("ERROR: t=%t : %s: HBURST changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HBURST changed during a wait state.", $time, NAME);
   if (hprot_p  !== hprot)
-    $display ("ERROR: t=%t : %s: HPROT  changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HPROT  changed during a wait state.", $time, NAME);
   // data signal changes during a write cycle
   if ( (hwdata_p !== hwdata) & hwrite_r )
-    $display ("ERROR: t=%t : %s: HWDATA changed during a wait state.", $time, name);
+    $display ("ERROR: t=%t : %s: HWDATA changed during a wait state.", $time, NAME);
 end
 
 // burst length and address check
@@ -304,19 +302,19 @@ if (hready_p & hresetn_p & hsel_r) begin
   if (hburst_p != `SINGLE) begin
     if (burst_cnt <  burst_len-1) begin
       if (hburst != hburst_p)
-        $display ("ERROR: t=%t : %s: HBURST changed during a burst sequence.", $time, name);
+        $display ("ERROR: t=%t : %s: HBURST changed during a burst sequence.", $time, NAME);
     end
     if (burst_cnt <  burst_len-1) begin
       if (~((htrans == `SEQ) | (htrans == `BUSY)))
-        $display ("ERROR: t=%t : %s: HBURST early burst termination.", $time, name);
+        $display ("ERROR: t=%t : %s: HBURST early burst termination.", $time, NAME);
     end
     if (burst_cnt == burst_len-1) begin
       if (~((htrans == `NONSEQ) | (htrans == `IDLE)))
-        $display ("ERROR: t=%t : %s: HBURST missed burst termination.", $time, name);
+        $display ("ERROR: t=%t : %s: HBURST missed burst termination.", $time, NAME);
     end
     if (htrans == `SEQ) begin
-      if (haddr_r[aw-1:10] != haddr[aw-1:10])
-        $display ("ERROR: t=%t : %s: HADDR burst crossed the 1kB boundary.", $time, name);
+      if (haddr_r[AW-1:10] != haddr[AW-1:10])
+        $display ("ERROR: t=%t : %s: HADDR burst crossed the 1kB boundary.", $time, NAME);
     end
   end
 end
@@ -324,13 +322,13 @@ end
 // registered first address of a burst
 always @(negedge hresetn, posedge hclk)
 if (~hresetn)
-  burst_cnt <= #1 0;
+  burst_cnt <= 0;
 else if (hready) begin
   if (htrans == `NONSEQ) begin
-    haddr_b   <= #1 haddr;
-    burst_cnt <= #1 0;
+    haddr_b   <= haddr;
+    burst_cnt <= 0;
   end else if (hburst_r != `SINGLE)
-    burst_cnt <= #1 burst_cnt+1;
+    burst_cnt <= burst_cnt+1;
 end
 
 // for an incrementing burst of undefined length the burst length is limited to 1KB

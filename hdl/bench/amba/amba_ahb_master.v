@@ -25,132 +25,243 @@
 
 module amba_ahb_master #(
   // bus parameters
-  parameter aw = `AW,            // address bus width
-  parameter dw = `DW,            // data bus width
-  parameter rw = `RW,            // response width
-  parameter de = `DE,            // available options are 'BIG' and 'LITTLE'
-  parameter iv = 1'bx,           // idle value (value of signals when bus is idle)
-  // presentation parameters 
-  parameter name = "noname"      // instance name used for ERROR reporting
+  parameter AW = `AW,            // address bus width
+  parameter DW = `DW,            // data bus width
+  parameter RW = `RW,            // response width
+  parameter DE = `DE,            // available options are 'BIG' and 'LITTLE'
+  parameter IV = 1'bx,           // idle value (value of signals when bus is idle)
+  // input file (program), output file (read data)
+  parameter FILE_I = "",         // program filename
+  parameter FILE_O = "",         // program filename
+  // presentation
+  parameter NAME = "noname",     // instance name used for ERROR reporting
+  parameter AUTO = 0
 )(
   // AMBA AHB system signals
   input  wire          hclk,     // Bus clock
   input  wire          hresetn,  // Reset (active low)
   // AMBA AHB master signals
-  output reg  [aw-1:0] haddr,    // Address bus
+  output reg  [AW-1:0] haddr,    // Address bus
   output reg     [1:0] htrans,   // Transfer type
   output reg           hwrite,   // Transfer direction
   output reg     [2:0] hsize,    // Transfer size
   output reg     [2:0] hburst,   // Burst type
   output reg     [3:0] hprot,    // Protection control
-  output reg  [dw-1:0] hwdata,   // Write data bus
+  output reg  [DW-1:0] hwdata,   // Write data bus
   // AMBA AHB slave signals
-  input  wire [dw-1:0] hrdata,   // Read data bus
+  input  wire [DW-1:0] hrdata,   // Read data bus
   input  wire          hready,   // Transfer done
-  input  wire [rw-1:0] hresp,    // Transfer response
+  input  wire [RW-1:0] hresp,    // Transfer response
   // slave response check
   output wire          error     // unexpected response from slave
 );
 
 //////////////////////////////////////////////////////////////////////////////
-// local signals                                                            //
+// local parameters and signals                                             //
 //////////////////////////////////////////////////////////////////////////////
 
+localparam AM = 2;
+
 // registered (delayed) values of master output signals
-reg [aw-1:0] haddr_r;
+reg [AW-1:0] haddr_r;
 reg    [1:0] htrans_r;
 reg          hwrite_r;
 reg    [2:0] hsiz_r;
 reg    [2:0] hburst_r;
 reg    [2:0] hprot_r;
 
-// temporary value of expected slave response
-reg [dw-1:0] hwdata_t;
-reg [dw-1:0] hrdata_t;
-reg [rw-1:0] hresp_t;
+// temporal wishbone variables (used for parsing)
+reg [AW-1:0] t_haddr;
+reg    [2:0] t_hsize;
+reg [DW-1:0] t_hwdata;
+reg [DW-1:0] t_mask;            // data mask
 
-// slave response expected values
-reg  [dw-1:0] hrdata_x;
-reg  [rw-1:0] hresp_x;
+// wishbone status
+wire    trn;       // transfer completion indicator
+wire    rdy;       // bus redyness status
 
-// transfer responce
-wire         trn;                 // transfer completion indicator
-reg          chk = 0, chk_r = 0;  // transfer responce check enable
+// wishbone master status
+integer cnt;       // burst or idle state counter
+reg     run = 0;   // master running status
+reg     raw;       // raw access status
 
-// line organization and width (each line is subdivided into the next columns)
-parameter lw = 1 +   aw +     2 +     1 +    3 +     3 +    4 +    dw +    dw +   rw;
-// name      chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata, hrdata, hresp
+// file pointer and access status
+integer fp_i, fs_i = 0; // program input
+integer fp_o, fs_o = 0; // read output
 
-// FIFO signals line vector and tape memory
-parameter        fl = 1024;      // FIFO deepth
-reg     [lw-1:0] fifo [0:fl-1];  // tape memory
-reg     [32-1:0] i_r = 0;        // FIFO read position index
-reg     [32-1:0] i_w = 0;        // FIFO write position index
-reg     [32-1:0] i_d = 0;        // FIFO load status (index delta)
-wire             empty;          // FIFO empty indicator
+// program file parsing variables
+reg [8*8-1:0] inst, text;
+reg     [7:0] c;
+reg [8*8-1:0] endian;
+integer       width;
+integer       shift;
+integer       i;
 
-// line to be loaded when FIFO empty (the AHB bus is IDLE)
-reg     [lw-1:0] line0 = {1'b0, {aw{iv}},  `IDLE, {1{iv}}, {3{iv}}, {3{iv}}, {4{iv}}, {dw{iv}}, {dw{1'bx}}, {rw{1'bx}}};
-//                name     chk,    haddr, htrans,  hwrite,   hsize,  hburst,   hprot,   hwdata,   hrdata_t,    hresp_t
+///////////////////////////////////////////////////////////////////////////////
+// initialization and on request tasks                                       //
+///////////////////////////////////////////////////////////////////////////////
 
-// current FIFO status (index delta)
-always @ *
-	i_d = (i_w - i_r) % fl;
+initial begin
+  $display ("DEBUG: Starting master");
+  if (AUTO)  start (FILE_I, FILE_O);
+  $finish;
+end
 
-assign empty = (i_d == 0);
+task start (
+  input reg [256*8-1:0] filename_i,
+  input reg [256*8-1:0] filename_o
+); begin
+  if (filename_i != "") begin
+    fp_i = $fopen (filename_i, "r");
+    $display ("DEBUG: Opening program input file %s", filename_i);
+  end else begin
+    $display ("ERROR: No program input file specified!");
+    $finish;
+  end
+  if (filename_o != "") begin
+    fp_o = $fopen (filename_o, "w");
+    $display ("DEBUG: Opening read output file %s", filename_o);
+  end else begin
+    $display ("DEBUG: No read ouptut file specified!");
+    $finish;
+  end
+  run = 1;
+end endtask
+
+task stop; begin
+  run = 0;
+end endtask
 
 ///////////////////////////////////////////////////////////////////////////////
 // master state machine                                                      //
 ///////////////////////////////////////////////////////////////////////////////
 
-// assign trn = hready & htrans_r[1];
+assign rdy = hready & htrans_r[1];
 assign trn = hready | (hresp != `OKAY);
 
-// FIFO loader machine
-always @(negedge hresetn, posedge hclk)
+always @ (negedge hresetn, posedge hclk)
 if (~hresetn) begin
+  // set the bus into an idle state
+  {haddr, htrans, hwrite, hsize, hburst, hprot, hwdata} <= {{AW{IV}}, `IDLE, IV, {3{IV}}, {3{IV}}, {4{IV}}, {DW{IV}}};
+  cnt <= 0;
+  raw <= 0;
 end else begin
-  if (i_d > 0) begin             // check the FIFO status
-    if (trn | ~chk_r)
-      i_r <= #1 (i_r + 1) % fl;  // increment FIFO read index
+  // if 'run' is disabled, the master skips the clock pulse
+  if (run) begin
+    // in the event of a data transfer
+    if (trn) begin
+      // sent the data to the output file
+      if (~hwrite)  $fwrite (fp_o, "%h", hrdata);
+      case (instr_r)
+        "write", "read" : begin end
+        default : begin
+          $fwrite (fp_o, " %s", hresp ? "ERROR" : "OKAY");
+        end
+      endcase
+      $fwrite (fp_o, "/n");
+      // properly finish burst cycles
+//      if (cnt >  0)  cnt <= cnt - 1;
+//      if (cnt == 1)  cti <= 3'b111;
+      // burst address incrementer
+//      if (cti == 3'b010) begin
+//        incr = sw;
+//        mask = len_out*sw-1;
+//      end else begin
+//        incr = 0;
+//        mask = 0;
+//      end
+//      for (n=0; n<len_out-1; n=n+1) begin
+//        if (bte == 2'b00)  badr =  tadr          +          incr*n;
+//        else               badr = (tadr & ~mask) + ((tadr + incr*n) & mask);
+    end
+    // handler for raw transfers
+    if (raw) begin
+      if (cnt >  0)  cnt <= cnt - 1;
+    end
+    // in the case of the end of a single or burst cycle and in the case of raw cycles
+    if ((rdy | raw) & (cnt == 0)) begin
+      // wait for a ne line in the file and skip comment lines
+      fs_i = 0;
+      while (fs_i == 0) begin
+        fs_i = $fscanf (fp_i, "%s ", inst);
+        if (inst == "#") begin
+          while ($fgetc(fp_i) != "\n") begin end
+          fs_i = 0;
+        end
+      end
+      // instruction decoder
+      case (inst)
+        // system instructions
+        "display" : begin
+          fs_i = $fscanf (fp_i, "%s ", text);
+          $display ("INFO: Master program requested to display \"%s\".", text);
+        end
+        "end"    : begin
+          run <= 0;
+        end
+        "finish" : begin
+          $fclose (fp_i);
+          $flush  (fp_o);
+          $fclose (fp_o);
+          $finish;
+        end
+        // bus generic instructions
+        "idle" : begin
+          {haddr, htrans, hwrite, hsize, hburst, hprot, hwdata} <= {{AW{IV}}, `IDLE, IV, {3{IV}}, {3{IV}}, {4{IV}}, {DW{IV}}};
+          raw <= 1;
+        end
+        "write", "read" : begin
+          // parsing
+          fs_i = $fscanf (fp_i, "%s %d %h ", endian, width, t_haddr);
+          if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", t_hwdata);
+          // processing
+          case (width)
+                  8 : t_hsize = 3'b000;
+                 16 : t_hsize = 3'b001;
+                 32 : t_hsize = 3'b010;
+                 64 : t_hsize = 3'b011;
+                128 : t_hsize = 3'b100;
+                256 : t_hsize = 3'b101;
+                512 : t_hsize = 3'b110;
+               1024 : t_hsize = 3'b111;
+            default : $display ("ERROR: Parsing error: Unsupported transfer width: %0d", width);
+          endcase
+          case (endian)
+            "be"    : shift = (DW-width)/8 - (t_haddr & ~AM);
+            "le"    : shift =                (t_haddr & ~AM);
+            default : $display ("ERROR: Parsing error: Unsuported endianness: %0s", endian);
+          endcase
+          t_mask = {DW{1'bx}} | (2**width)-1 << shift;
+          t_hwdata = t_hwdata << (8*shift);
+          // applying signals to the bus
+          haddr  <= t_haddr & AM;
+          htrans <= `NONSEQ;
+          hwrite <= (inst == "write") ? 1'b1 : 1'b0;
+          hsize  <= t_hsize;
+          hburst <= `SINGLE;
+          hprot  <= 4'b0011;
+          hwdata <= (inst == "write") ? (t_hwdata ^ t_mask) : {DW{IV}};
+        end
+        // wishbone specific instructions
+        "ahb_bst", "ahb_raw" : begin
+          fs_i = $fscanf (fp_i, "%d ", cnt);
+          fs_i = $fscanf (fp_i, "%h %b %b %b %b %b %h", haddr, htrans, hwrite, hsize, hburst, hprot, hwdata);
+          if (inst == "wb_raw")  raw <= 1;
+        end
+        // the default is an idle bus
+        default  : begin
+          $display ("WARNING: Parsing error: Unrecognized instruction \"%s\".", inst);
+          {haddr, htrans, hwrite, hsize, hburst, hprot, hwdata} <= {{AW{IV}}, `IDLE, IV, {3{IV}}, {3{IV}}, {4{IV}}, {DW{IV}}};
+        end
+      endcase
+    end
   end
 end
 
-// memory wishbone master
-always @(negedge hresetn, posedge hclk)
-if (~hresetn) begin
-  {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= #1 line0;
-  htrans_r <= #1 `IDLE;          // the AHB bus should be IDLE after reset
-end else begin                   // registered (delayed) bus signals
-  if (trn | ~chk_r) begin                 
-    haddr_r  <= #1 haddr;
-    htrans_r <= #1 htrans;
-    hwrite_r <= #1 hwrite;
-    hsiz_r   <= #1 hsize;
-    hburst_r <= #1 hburst;
-    hprot_r  <= #1 hprot;
-    hwdata   <= #1 hwdata_t;
-    hrdata_x <= #1 hrdata_t;
-    hresp_x  <= #1 hresp_t;  
-    {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= #1 (i_d > 0) ? fifo[i_r] : line0;
-    chk_r    <= #1 chk;
-  end
-end
 
+/*
 // error due to unexpected AHB slave response
 assign error = htrans_r[1] & hready & (~hwrite_r & (hrdata_x !== hrdata) | (hresp_x !== hresp));
-
-///////////////////////////////////////////////////////////////////////////////
-// tasks for loading AMBA AHB cycles into the FIFO                           //
-///////////////////////////////////////////////////////////////////////////////
-
-//
-// This tasks are used to load the FIFO with bus transactions, that will be
-// played in the same order as they are written. This tasks can be called from
-// this module or from a higher module.
-// Currently there are tasks for pauses, single and burst transfers, more
-// tasks can be added.
-//
 
 // raw FIFO loading
 task fifo_load;
@@ -178,12 +289,12 @@ endtask
 
 // generating a single transfer
 task cyc_single;
-  input    [aw-1:0] adr;
+  input    [AW-1:0] adr;
   input             we;
   input       [2:0] siz;
   input       [3:0] prt;
-  input    [dw-1:0] dat_o;  // output (write) data
-  input    [dw-1:0] dat_i;  // expected input (read) data
+  input    [DW-1:0] dat_o;  // output (write) data
+  input    [DW-1:0] dat_i;  // expected input (read) data
 begin
   if (i_d + 1 < fl) begin
     fifo[i_w] = {1'b1,   adr, `NONSEQ,     we,   siz, `SINGLE,   prt,  dat_o,    dat_i,   `OKAY};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
@@ -195,39 +306,39 @@ endtask
 
 // generating a fixed length burst transfer
 task cyc_burst;
-  input    [aw-1:0] adr;
+  input    [AW-1:0] adr;
   input             we;
   input       [2:0] siz;
   input       [2:0] bst;    // burst type
   input       [3:0] prt;
-  input [16*dw-1:0] dat_o;  // output (write) data array
-  input [16*dw-1:0] dat_i;  // expected input (read) data array
-  input    [aw-1:0] len;
+  input [16*DW-1:0] dat_o;  // output (write) data array
+  input [16*DW-1:0] dat_i;  // expected input (read) data array
+  input    [AW-1:0] len;
   // local variables
   integer           n;
-  reg      [aw-1:0] mask;   // address mask for wrapping bursts
-  reg      [aw-1:0] incr;   // address increment
-  reg      [aw-1:0] badr;   // calculated burst address
+  reg      [AW-1:0] mask;   // address mask for wrapping bursts
+  reg      [AW-1:0] incr;   // address increment
+  reg      [AW-1:0] badr;   // calculated burst address
   integer           midx;   // pointer into the data array
 begin
   if (i_d + 2**(bst[2:1]+1) < fl) begin
     mask = (1 << (siz+bst[2:1]+1)) - 1;
     badr = adr;
     midx = 2**(bst[2:1]+1)-1;
-    fifo[i_w] = {1'b1,  badr, `NONSEQ,     we,   siz,    bst,   prt, dat_o[dw*midx+:dw], dat_i[dw*midx+:dw],   `OKAY};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
+    fifo[i_w] = {1'b1,  badr, `NONSEQ,     we,   siz,    bst,   prt, dat_o[DW*midx+:DW], dat_i[DW*midx+:DW],   `OKAY};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
     for (n=1; n<2**(bst[2:1]+1); n=n+1) begin
     incr = (2**siz)*n;
     if (bst[0])  badr =  adr          +         incr;
     else         badr = (adr & ~mask) + ((adr + incr) & mask);
     midx = midx - 1;
-    fifo[i_w] = {1'b1,  badr,    `SEQ,     we,   siz,    bst,   prt, dat_o[dw*midx+:dw], dat_i[dw*midx+:dw],   `OKAY};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
+    fifo[i_w] = {1'b1,  badr,    `SEQ,     we,   siz,    bst,   prt, dat_o[DW*midx+:DW], dat_i[DW*midx+:DW],   `OKAY};  i_w=(i_w+1)%fl; i_d=(i_w-i_r)%fl;
     // name       chk, haddr,  htrans, hwrite, hsize, hburst, hprot,             hwdata,           hrdata_t, hresp_t
     end
   end else
     $display ("ERROR: %s: AMBA AHB master fifo overflow", name);
 end
 endtask
-
+*/
 
 endmodule
 
