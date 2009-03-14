@@ -112,28 +112,29 @@ if (~hresetn) begin
 end else begin
   if (i_d > 0) begin             // check the FIFO status
     if (trn | ~chk_r)
-      i_r <= #1 (i_r + 1) % fl;  // increment FIFO read index
+      i_r <= (i_r + 1) % fl;  // increment FIFO read index
   end
 end
 
 // memory wishbone master
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
-  {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= #1 line0;
-  htrans_r <= #1 `IDLE;          // the AHB bus should be IDLE after reset
+  {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= line0;
+//  htrans   <= 0;
+  htrans_r <= `IDLE;          // the AHB bus should be IDLE after reset
 end else begin                   // registered (delayed) bus signals
   if (trn | ~chk_r) begin                 
-    haddr_r  <= #1 haddr;
-    htrans_r <= #1 htrans;
-    hwrite_r <= #1 hwrite;
-    hsiz_r   <= #1 hsize;
-    hburst_r <= #1 hburst;
-    hprot_r  <= #1 hprot;
-    hwdata   <= #1 hwdata_t;
-    hrdata_x <= #1 hrdata_t;
-    hresp_x  <= #1 hresp_t;  
-    {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= #1 (i_d > 0) ? fifo[i_r] : line0;
-    chk_r    <= #1 chk;
+    haddr_r  <= haddr;
+    htrans_r <= htrans;
+    hwrite_r <= hwrite;
+    hsiz_r   <= hsize;
+    hburst_r <= hburst;
+    hprot_r  <= hprot;
+    hwdata   <= hwdata_t;
+    hrdata_x <= hrdata_t;
+    hresp_x  <= hresp_t;  
+    {chk, haddr, htrans, hwrite, hsize, hburst, hprot, hwdata_t, hrdata_t, hresp_t} <= (i_d > 0) ? fifo[i_r] : line0;
+    chk_r    <= chk;
   end
 end
 
