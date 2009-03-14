@@ -96,33 +96,38 @@ integer       width;
 integer       shift;
 integer       i;
 
+// debug TODO
+integer p;
+
 ///////////////////////////////////////////////////////////////////////////////
-// wishbone data path                                                        //
+// wishbone controller                                                       //
 ///////////////////////////////////////////////////////////////////////////////
 
+// wishbone bus status
 assign trn = cyc & stb & (ack | err | rty);
 assign rdy = ~cyc | trn & ((cti == 3'b000) | (cti == 3'b111));
 
+// automatic initialization if enabled
 initial begin
   $display ("DEBUG: Starting master");
   if (AUTO)  start (FILE_I, FILE_O);
-  #200 $finish;
 end
 
+// start the wishbone master (open files and start parsing cycle commands)
 task start (
   input reg [256*8-1:0] filename_i,
   input reg [256*8-1:0] filename_o
 ); begin
   if (filename_i != "") begin
     fp_i = $fopen (filename_i, "r");
-    $display ("DEBUG: Opening program input file %s", filename_i);
+    $display ("DEBUG: Opening program input file \"%0s\".", filename_i);
   end else begin
     $display ("ERROR: No program input file specified!");
     $finish;
   end
   if (filename_o != "") begin
     fp_o = $fopen (filename_o, "w");
-    $display ("DEBUG: Opening read output file %s", filename_o);
+    $display ("DEBUG: Opening read output file \"%0s\".", filename_o);
   end else begin
     $display ("DEBUG: No read ouptut file specified!");
     $finish;
@@ -130,8 +135,11 @@ task start (
   run = 1;
 end endtask
 
+// stop wishbone master (stop parsing wait for end of cycle and close files)
 task stop; begin
   run = 0;
+  $fclose (fp_i);
+  $fclose (fp_o);
 end endtask
 
 integer cnt_clk = 0;
@@ -146,6 +154,7 @@ always @ (posedge clk) begin
   if (cnt_clk > 100) $finish;
 end
 
+// command parser and cycle controller
 always @ (posedge rst, posedge clk)
 if (rst) begin
   // set the bus into an idle state
@@ -184,13 +193,20 @@ end else begin
     end
     // in the case of the end of a single or burst cycle and in the case of raw cycles
     if ((rdy | raw) & (cnt == 0)) begin
-      // wait for a ne line in the file and skip comment lines
+      // wait for a new line in the file and skip comment lines
       fs_i = 0;
       while (fs_i == 0) begin
+        $display ("DEBUG: program file status %d.", fs_i);
+        while (fs_i == 0) begin
+          c = $fgetc(fp_i);
+          case (c)
+          " ", "\n" : fs_i = 0;
+          default   : fs_i = 1;
+          endcase
+        end
+        fs_i = $ungetc(c, fp_i);
         fs_i = $fscanf (fp_i, "%s ", inst);
-        //$display ("DEBUG: program file status %d.", fs_i);
-//        if (fs_i == 0)  c = $fgetc(fp_i);
-//        fs_i = $ungetc(c, fp_i);
+        $display ("DEBUG: program file status %d.", fs_i);
         if (inst == "#") begin
           while ($fgetc(fp_i) != "\n") begin end
           fs_i = 0;
@@ -251,6 +267,13 @@ end else begin
         default  : begin
           $display ("WARNING: Parsing error: Unrecognized instruction \"%s\".", inst);
           {cyc, stb, we, adr, sel, cti, bte, dat_o} <= {1'b0, IV, IV, {AW{IV}}, {SW{IV}}, {3{IV}}, {2{IV}}, {DW{IV}}};
+          while (1) begin
+            c    = $fgetc(fp_i);
+            p    = $ftell(fp_i);
+            $display ("DEBUG: Character %d, \"%s\", position %d", c, c, p);
+            //fs_i = $ferror(fp_i, text);
+            //$display ("DEBUG: Character %d, \"%s\", position %d, status %d, error %s", c, c, p, fs_i, text);
+          end
         end
       endcase
     end
