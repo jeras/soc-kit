@@ -114,39 +114,6 @@ else begin
   end
 end
 
-assign stop = cnt == ((first) ? ((we) ? lw  : lr )
-                              : ((we) ? lwb : lrb));
-
-// acknowledge response
-assign ack = (cyc) ? stop : IV;
-// error response
-assign err = (cyc) ? 1'b0 : IV;  // TODO
-// retry response
-assign rty = (cyc) ? 1'b0 : IV;  // TODO
-
-//////////////////////////////////////////////////////////////////////////////
-// memory and data bus implementation                                       //
-//////////////////////////////////////////////////////////////////////////////
-
-generate
-for (i=0; i<SW; i=i+1) begin : data_paths
-  if (DE == "LITTLE") begin
-    // write to memory
-    always @(posedge clk)
-      if (trn & we & sel[i])  mem [adr+i] <= dat_i [8*i+:8];
-    // read from memory
-    assign dat_o [8*i+:8] = (trn & ~we & sel[i]) ? mem [adr*SW+i] : {8{IV}};
-  end
-  if (DE == "BIG") begin
-    // write to memory
-    always @(posedge clk)
-      if (trn & we & sel[i])  mem [adr+SW-1-i] <= dat_i [8*i+:8];
-    // read from memory
-    assign dat_o [8*i+:8] = (trn & ~we & sel[i]) ? mem [adr+SW-1-i] : {8{IV}};
-  end
-end
-endgenerate
-
 
 endmodule
 

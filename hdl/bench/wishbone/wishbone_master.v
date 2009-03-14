@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //                                                                          //
-//  WISHBONE bus interface testbench                                        //
+//  WISHBONE bus interface master model                                     //
 //                                                                          //
 //  Copyright (C) 2008  Iztok Jeras                                         //
 //                                                                          //
