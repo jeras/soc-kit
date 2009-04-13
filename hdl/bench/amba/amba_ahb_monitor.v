@@ -113,9 +113,9 @@ wire [32-1:0] burst_len;  // expected number of burst beats
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
   hresetn_p <= 1'b0;
-  htrans_p  <= `IDLE;
+  htrans_p  <= `H_IDLE;
   hready_p  <= 1'b0;
-  hresp_p   <= `OKAY;
+  hresp_p   <= `H_OKAY;
 end else begin
   hresetn_p <= 1'b1;
   hsel_p    <= hsel;
@@ -135,9 +135,9 @@ end
 always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
   hresetn_r <= 1'b0;
-  htrans_r  <= `IDLE;
+  htrans_r  <= `H_IDLE;
   hready_r  <= 1'b0;
-  hresp_r   <= `OKAY;
+  hresp_r   <= `H_OKAY;
 end else if (hready) begin
   hresetn_r <= 1'b1;
   hsel_r    <= hsel;
@@ -162,7 +162,7 @@ always @(negedge hresetn, posedge hclk)
 if (~hresetn) begin
   timeout_cnt <= 0;
 end else begin
-  if (hready | (htrans_r != `IDLE))
+  if (hready | (htrans_r != `H_IDLE))
   timeout_cnt <= timeout_cnt + 1;
 end
 
@@ -170,7 +170,7 @@ end
 // memory and data bus implementation                                       //
 //////////////////////////////////////////////////////////////////////////////
 
-assign trn_req = ((htrans_r == `NONSEQ) | (htrans_r == `SEQ));
+assign trn_req = ((htrans_r == `H_NONSEQ) | (htrans_r == `H_SEQ));
 assign trn_ack = (hready);
 assign trn     = trn_req & trn_ack;
 
@@ -180,7 +180,7 @@ assign bytes = 2**hsize_r;
 generate
   for (i=0; i<bw; i=i+1) begin
     always @(posedge hclk) begin
-      if (trn & hwrite_r & (hresp == `OKAY)) begin
+      if (trn & hwrite_r & (hresp == `H_OKAY)) begin
         if ((haddr_r%bw <= i) & (i < (haddr_r%bw + bytes)))  mem [haddr_r/bw*bw+i] <= hwdata [8*i+:8];
       end
     end
@@ -190,7 +190,7 @@ endgenerate
 // read from memory
 generate
   for (i=0; i<bw; i=i+1) begin
-    assign rdata [8*i+:8] = ((trn & ~hwrite_r & (hresp == `OKAY)) & (haddr_r%bw <= i) & (i < (haddr_r%bw + bytes))) ? mem [haddr_r/bw*bw+i] : 8'hxx;
+    assign rdata [8*i+:8] = ((trn & ~hwrite_r & (hresp == `H_OKAY)) & (haddr_r%bw <= i) & (i < (haddr_r%bw + bytes))) ? mem [haddr_r/bw*bw+i] : 8'hxx;
   end
 endgenerate
 
@@ -215,47 +215,59 @@ end else if (trn & hsel_r) begin
     "%h | ",
       haddr_r,
     "%s | ",
-      (htrans_r == `IDLE  ) ? "IDLE  " :
-      (htrans_r == `BUSY  ) ? "BUSY  " :
-      (htrans_r == `NONSEQ) ? "NONSEQ" :
-      (htrans_r == `SEQ   ) ? "SEQ   " :
-                              "******" ,
+      (htrans_r == `H_IDLE    ) ? "IDLE  " :
+      (htrans_r == `H_BUSY    ) ? "BUSY  " :
+      (htrans_r == `H_NONSEQ  ) ? "NONSEQ" :
+      (htrans_r == `H_SEQ     ) ? "SEQ   " :
+                                  "******" ,
     "%s | ",
-      (hburst_r == `SINGLE) ? "SINGLE" :
-      (hburst_r == `INCR  ) ? "INCR  " :
-      (hburst_r == `WRAP4 ) ? "WRAP4 " :
-      (hburst_r == `INCR4 ) ? "INCR4 " :
-      (hburst_r == `WRAP8 ) ? "WRAP8 " :
-      (hburst_r == `INCR8 ) ? "INCR8 " :
-      (hburst_r == `WRAP16) ? "WRAP16" :
-      (hburst_r == `INCR16) ? "INCR16" :
-                              "******" ,
+      (hburst_r == `H_SINGLE  ) ? "SINGLE" :
+      (hburst_r == `H_INCR    ) ? "INCR  " :
+      (hburst_r == `H_WRAP4   ) ? "WRAP4 " :
+      (hburst_r == `H_INCR4   ) ? "INCR4 " :
+      (hburst_r == `H_WRAP8   ) ? "WRAP8 " :
+      (hburst_r == `H_INCR8   ) ? "INCR8 " :
+      (hburst_r == `H_WRAP16  ) ? "WRAP16" :
+      (hburst_r == `H_INCR16  ) ? "INCR16" :
+                                  "******" ,
     "%s  | ",
-      (hwrite_r == `READ )  ? "READ " :
-      (hwrite_r == `WRITE)  ? "WRITE" :
-                              "*****" ,
+      (hwrite_r == `H_READ    ) ? "READ " :
+      (hwrite_r == `H_WRITE   ) ? "WRITE" :
+                                  "*****" ,
     "%s | ",
-      (hsize_r == 3'b000)   ? "   8bit" :
-      (hsize_r == 3'b001)   ? "  16bit" :
-      (hsize_r == 3'b010)   ? "  32bit" :
-      (hsize_r == 3'b011)   ? "  64bit" :
-      (hsize_r == 3'b100)   ? " 128bit" :
-      (hsize_r == 3'b101)   ? " 256bit" :
-      (hsize_r == 3'b110)   ? " 512bit" :
-      (hsize_r == 3'b111)   ? "1024bit" :
-                              "*******" ,
+      (hsize_r  == H_SIZE_8   ) ? "   8bit" :
+      (hsize_r  == H_SIZE_16  ) ? "  16bit" :
+      (hsize_r  == H_SIZE_32  ) ? "  32bit" :
+      (hsize_r  == H_SIZE_64  ) ? "  64bit" :
+      (hsize_r  == H_SIZE_128 ) ? " 128bit" :
+      (hsize_r  == H_SIZE_256 ) ? " 256bit" :
+      (hsize_r  == H_SIZE_512 ) ? " 512bit" :
+      (hsize_r  == H_SIZE_1024) ? "1024bit" :
+                                  "*******" ,
     "%s | ",
-      (hprot_r[0] == 1'b0)  ? "Opcode fetch" :
-      (hprot_r[0] == 1'b1)  ? "Data access " :
-                              "************" ,
-    "%h | %h | ",
+      (hprot_r[0] == 1'b0) ? "Opcode fetch" :
+      (hprot_r[0] == 1'b1) ? "Data access " :
+                             "************" ,
+       "%s | ",
+      (hprot_r[1] == 1'b0) ? "" :
+      (hprot_r[1] == 1'b1) ? "" :
+                             "************" ,
+   "%s | ",
+      (hprot_r[2] == 1'b0) ? "" :
+      (hprot_r[2] == 1'b1) ? "" :
+                             "************" ,
+   "%s | ",
+      (hprot_r[3] == 1'b0) ? "" :
+      (hprot_r[3] == 1'b1) ? "" :
+                             "************" ,
+   "%h | %h | ",
        hwdata, hrdata,
     "%s | ",
-      (hresp == `OKAY )     ? "OKAY " :
-      (hresp == `ERROR)     ? "ERROR" :
-      (hresp == `RETRY)     ? "RETRY" :
-      (hresp == `SPLIT)     ? "SPLIT" :
-                              "*****" ,
+      (hresp == `H_OKAY       ) ? "OKAY " :
+      (hresp == `H_ERROR      ) ? "ERROR" :
+      (hresp == `H_RETRY      ) ? "RETRY" :
+      (hresp == `H_SPLIT      ) ? "SPLIT" :
+                                  "*****" ,
     "%4d |", burst_cnt
   );
   debug_cnt <= debug_cnt + 1;
@@ -272,7 +284,7 @@ end endgenerate
 // address or control signal changes during a cycle
 // (after the request, before a termination)
 always @(posedge hclk)
-if (hresetn_p & ((htrans_p == `NONSEQ) | (htrans_p == `SEQ)) & ~hready_p & (hresp == `IDLE)) begin
+if (hresetn_p & ((htrans_p == `H_NONSEQ) | (htrans_p == `H_SEQ)) & ~hready_p & (hresp == `H_IDLE)) begin
   // address signal changes
   if (hsel_p   !== hsel)
     $display ("ERROR: t=%t : %s: HSEL   changed during a wait state.", $time, NAME);
@@ -299,20 +311,20 @@ end
 // burst length and address check
 always @(posedge hclk)
 if (hready_p & hresetn_p & hsel_r) begin
-  if (hburst_p != `SINGLE) begin
+  if (hburst_p != `H_SINGLE) begin
     if (burst_cnt <  burst_len-1) begin
       if (hburst != hburst_p)
         $display ("ERROR: t=%t : %s: HBURST changed during a burst sequence.", $time, NAME);
     end
     if (burst_cnt <  burst_len-1) begin
-      if (~((htrans == `SEQ) | (htrans == `BUSY)))
+      if (~((htrans == `H_SEQ) | (htrans == `H_BUSY)))
         $display ("ERROR: t=%t : %s: HBURST early burst termination.", $time, NAME);
     end
     if (burst_cnt == burst_len-1) begin
-      if (~((htrans == `NONSEQ) | (htrans == `IDLE)))
+      if (~((htrans == `H_NONSEQ) | (htrans == `H_IDLE)))
         $display ("ERROR: t=%t : %s: HBURST missed burst termination.", $time, NAME);
     end
-    if (htrans == `SEQ) begin
+    if (htrans == `H_SEQ) begin
       if (haddr_r[AW-1:10] != haddr[AW-1:10])
         $display ("ERROR: t=%t : %s: HADDR burst crossed the 1kB boundary.", $time, NAME);
     end
@@ -324,17 +336,17 @@ always @(negedge hresetn, posedge hclk)
 if (~hresetn)
   burst_cnt <= 0;
 else if (hready) begin
-  if (htrans == `NONSEQ) begin
+  if (htrans == `H_NONSEQ) begin
     haddr_b   <= haddr;
     burst_cnt <= 0;
-  end else if (hburst_r != `SINGLE)
+  end else if (hburst_r != `H_SINGLE)
     burst_cnt <= burst_cnt+1;
 end
 
 // for an incrementing burst of undefined length the burst length is limited to 1KB
 assign trans_siz = 1 << hsize;
 assign burst_typ = hburst_r[0];
-assign burst_len = (hburst_r == `SINGLE) ? 1 : (hburst_r == `INCR) ? 1 << (10-hsize) : 1 << (hburst_r[2:1]+1);
+assign burst_len = (hburst_r == `H_SINGLE) ? 1 : (hburst_r == `H_INCR) ? 1 << (10-hsize) : 1 << (hburst_r[2:1]+1);
 assign burst_msk = (1 << (hsize_r+hburst_r[2:1]+1)) - 1;
 assign burst_adr = (burst_typ) ?                            haddr_b + burst_cnt * trans_siz
                                : (haddr_b & ~burst_msk) + ((haddr_b + burst_cnt * trans_siz) & burst_msk);

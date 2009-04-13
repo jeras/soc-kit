@@ -36,38 +36,6 @@
 `define DE "BIG"         // endianness ("BIG" or "LITTLE")
 
 // HWRITE      Transfer direction
-`define READ    1'b0
-`define WRITE   1'b1
-
-// HTRAN[1:0]  Transfer Type
-`define IDLE    2'b00
-`define BUSY    2'b01
-`define NONSEQ  2'b10
-`define SEQ     2'b11
-
-// HBURST[2:0] Burst Type
-`define SINGLE  3'b000  // Single burst
-`define INCR    3'b001  // Incrementing burst of undefined length
-`define WRAP4   3'b010  // 4-beat wrapping burst
-`define INCR4   3'b011  // 4-beat incrementing burst
-`define WRAP8   3'b100  // 8-beat wrapping burst
-`define INCR8   3'b101  // 8-beat incrementing burst
-`define WRAP16  3'b110  // 16-beat wrapping burst
-`define INCR16  3'b111  // 16-beat incrementing burst
-
-// HRESP       Transfer Response
-`ifdef AMBA_AHB_VER_3
-`define OKAY    1'b0
-`define ERROR   1'b1
-`elsif AMBA_AHB_VER_2
-`define OKAY    2'b00
-`define ERROR   2'b01
-`endif
-`define RETRY   2'b10
-`define SPLIT   2'b11
-
-
-// HWRITE      Transfer direction
 `define H_READ       1'b0
 `define H_WRITE      1'b1
 
