@@ -21,7 +21,7 @@
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-`timescale  1ns / 1ps
+`timescale  1us / 1ps
 
 module uart_tb ();
 
@@ -41,7 +41,7 @@ wire loop;
 initial begin
   $dumpfile("test.vcd");
   $dumpvars(0, uart_tb);
-  #10000;
+  #1000000;
   $finish;
 end
 
