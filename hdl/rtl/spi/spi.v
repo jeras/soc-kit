@@ -39,13 +39,13 @@ module spi #(
   parameter PAR_cd_rw =  8;  // clock divider register width
 )(
   // system signals (used by the wishbone interface)
-  input  wire                 clk,
-  input  wire                 rst,
+  input  wire           clk,
+  input  wire           rst,
   // SPI interface configuration signals
-  input  wire              dir,     // shift direction (0 - LSB first, 1 - MSB first)
-  input  wire              cpol,  // clock polarity
-  input  wire              cpha,  // clock phase
-  input  wire              dpx,   // duplex type (0 - SPI full duplex, 1 - 3WIRE half duplex (MOSI is shared))
+  input  wire           dir,   // shift direction (0 - LSB first, 1 - MSB first)
+  input  wire           cpol,  // clock polarity
+  input  wire           cpha,  // clock phase
+  input  wire           dpx,   // duplex type (0 - SPI full duplex, 1 - 3WIRE half duplex (MOSI is shared))
   // 
   // SPI signals
   output wire [SSW-1:0] ss_n,   // active low slave select signal

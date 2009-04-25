@@ -90,7 +90,7 @@ integer fp_i, fs_i = 0; // program input
 integer fp_o, fs_o = 0; // read output
 
 // program file parsing variables
-reg [8*8-1:0] inst, text;
+reg [8*8-1:0] inst, instr_r, text;
 reg     [7:0] c;
 reg [8*8-1:0] endian;
 integer       width;
@@ -201,7 +201,7 @@ end else begin
         end
         "finish" : begin
           $fclose (fp_i);
-          $flush  (fp_o);
+          $fflush (fp_o);
           $fclose (fp_o);
           $finish;
         end

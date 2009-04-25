@@ -2,7 +2,7 @@
 //                                                                          //
 //  UART interface model                                                    //
 //                                                                          //
-//  Copyright (C) 2008  Iztok Jeras                                         //
+//  Copyright (C) 2009  Iztok Jeras                                         //
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 //                                                                          //

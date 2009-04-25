@@ -25,7 +25,7 @@
  *  this file contains the system bus interface and static registers
 \*/
 
-module spi_top #(
+module spi_zbus #(
   // system bus parameters
   parameter DW = 32,          // data bus width
   parameter SW = DW/8,        // select signal width or bus width in bytes
@@ -71,7 +71,9 @@ module spi_top #(
   output wire [SSW-1:0] spi_ss_n,   // active low slave select signal
   output wire           spi_sclk,   // serial clock
   input  wire           spi_miso,   // serial master input slave output
-  inout  wire           spi_mosi    // serial master output slave input (or threewire bidirectional)
+  output wire           spi_mosi_i, // serial master output slave input or threewire bidirectional (input)
+  inout  wire           spi_mosi_o, // serial master output slave input or threewire bidirectional (output)
+  inout  wire           spi_mosi_e  // serial master output slave input or threewire bidirectional (output enable)
 );
 
 /*\
@@ -95,7 +97,7 @@ reg  reg_i, reg_o;             // spi input-sampling to output-change phase shif
 wire ser_i, ser_o;             // shifter serial input and output multiplexed signals
 
 // spi slave select signals
-reg  [PAR_ss_rw-1:0] reg_ss;   // active high slave select register
+reg  [SSW-1:0] reg_ss;   // active high slave select register
 
 // spi configuration registers (shift direction, clock polarity and phase, 3 wire option)
 reg  cfg_dir, cfg_cpol, cfg_cpha, cfg_3wr;
@@ -193,19 +195,19 @@ endgenerate
 // output data multiplexer
 generate
 if (DW == 32) begin
-assign zo_dat = (zo_adr[2]   == 0) ? {zo_dat_div, zo_dat_ss, zo_dat_cfg, zo_dat_ctl} :
+assign zo_dat = (zi_adr[2]   == 0) ? {zo_dat_div, zo_dat_ss, zo_dat_cfg, zo_dat_ctl} :
                                       zo_dat_dat                                     ;
 end else
 if (DW == 16) begin
-assign zo_dat = (zo_adr[2:1] == 2) ? {zo_dat_div, zo_dat_ss } :
-                (zo_adr[2:1] == 0) ? {zo_dat_cfg, zo_dat_ctl} :
+assign zo_dat = (zi_adr[2:1] == 2) ? {zo_dat_div, zo_dat_ss } :
+                (zi_adr[2:1] == 0) ? {zo_dat_cfg, zo_dat_ctl} :
                                       zo_dat_dat              ;
 end else
 if (DW ==  8) begin
-assign zo_dat = (zo_adr[2:0] == 3) ?  zo_dat_div :
-                (zo_adr[2:0] == 2) ?  zo_dat_ss  :
-                (zo_adr[2:0] == 1) ?  zo_dat_cfg :
-                (zo_adr[2:0] == 0) ?  zo_dat_ctl :
+assign zo_dat = (zi_adr[2:0] == 3) ?  zo_dat_div :
+                (zi_adr[2:0] == 2) ?  zo_dat_ss  :
+                (zi_adr[2:0] == 1) ?  zo_dat_cfg :
+                (zi_adr[2:0] == 0) ?  zo_dat_ctl :
                                       zo_dat_dat ;
 end
 endgenerate
@@ -330,7 +332,7 @@ assign zo_dat_ctl = {ctl_oe, {8-1-PAR_tu_cw{1'b0}}, ctl_cnt};
 // shift register implementation
 always @(posedge clk)
 if (zi_trn & zi_wen & zi_sel_dat) begin
-  reg_s <= #1 wb_dat_i;
+  reg_s <= #1 zi_dat_dat;  // TODO
 end else if (ctl_run) begin
   if (cfg_dir)  reg_s <= #1 {reg_s [PAR_sh_rw-2:0], ser_i};
   else          reg_s <= #1 {ser_i, reg_s [PAR_sh_rw-1:1]};
@@ -354,9 +356,10 @@ if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
   reg_i <= #1 ser_i;
 
 // the serial output from the shift register depends on the direction of shifting
-assign ser_o    = (cfg_dir) ? reg_s [shift_rw-1] : reg_s [0];
-assign ser_i    = (cfg_cpha == 0) ? reg_i : (cfg_3wr == 0) ? spi_miso : spi_mosi;
-assign spi_mosi = (ctl_oe) ? ( (cfg_cpha == 0) ? ser_o : reg_o ) : 1'bz;
+assign ser_o      = (cfg_dir) ? reg_s [shift_rw-1] : reg_s [0];
+assign ser_i      = (cfg_cpha == 0) ? reg_i : (cfg_3wr == 0) ? spi_miso : spi_mosi_i;
+assign spi_mosi_o = (cfg_cpha == 0) ? ser_o : reg_o;
+assign spi_mosi_e = ctl_oe;
 
 
 endmodule

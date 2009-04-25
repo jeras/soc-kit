@@ -224,6 +224,7 @@ end else begin
         end
         "finish" : begin
           $fclose (fp_i);
+          $fflush (fp_o);
           $fclose (fp_o);
           $finish;
         end
