@@ -137,13 +137,8 @@ wire [DW-1:0] zi_dat_dat, zo_dat_dat;
 assign zi_trn = zi_req & zi_ack;
 
 // bus address and select
-assign bus_adr = wb_adr [2:0];
-assign bus_sel = wb_sel;
-
-// wishbone acknowledge, error and retry
-assign wb_ack = 1'b1;
-assign wb_err = 1'b0;
-assign wb_rty = 1'b0;
+assign bus_adr = zi_adr [2:0];
+assign bus_sel = zi_sel;
 
 // acknowledge can be generated from cycle and strobe
 // if the bus implementation requires it
@@ -286,7 +281,7 @@ end else if (zi_trn & zi_wen & zi_sel_cfg) begin
 end
 
 // bus read value of the configuration register
-assign zo_dat_cfg = {4'b0, cfg_dir, cfg_cpol, cfg_cpha, cfg_3w};
+assign zo_dat_cfg = {4'b0, cfg_dir, cfg_cpol, cfg_cpha, cfg_3wr};
 
 /*\
  *  control registers (transfer counter and serial output enable)
@@ -356,7 +351,7 @@ if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
   reg_i <= #1 ser_i;
 
 // the serial output from the shift register depends on the direction of shifting
-assign ser_o      = (cfg_dir) ? reg_s [shift_rw-1] : reg_s [0];
+assign ser_o      = (cfg_dir) ? reg_s [PAR_sh_rw-1] : reg_s [0];
 assign ser_i      = (cfg_cpha == 0) ? reg_i : (cfg_3wr == 0) ? spi_miso : spi_mosi_i;
 assign spi_mosi_o = (cfg_cpha == 0) ? ser_o : reg_o;
 assign spi_mosi_e = ctl_oe;
