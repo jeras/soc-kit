@@ -60,9 +60,9 @@ module spi_zbus #(
   input  wire  [AW-1:0] zi_adr,     // address
   input  wire  [SW-1:0] zi_sel,     // byte select
   input  wire  [DW-1:0] zi_dat,     // data
-  input  wire           zi_ack,     // transfer acknowledge
+  output wire           zi_ack,     // transfer acknowledge
   // zbus output interface
-  input  wire           zo_req,     // transfer request
+  output wire           zo_req,     // transfer request
   output wire  [DW-1:0] zo_dat,     // data
   input  wire           zo_ack,     // transfer acknowledge
   // additional processor interface signals
@@ -140,9 +140,11 @@ assign zi_trn = zi_req & zi_ack;
 assign bus_adr = zi_adr [2:0];
 assign bus_sel = zi_sel;
 
-// acknowledge can be generated from cycle and strobe
-// if the bus implementation requires it
-//assign wb_ack = wb_cyc & wb_stb;
+// request acknowledge
+assign zi_ack = zi_req & zo_ack;
+
+// zbus output request
+assign zo_req = zi_req;
 
 // address decoder
 assign zi_sel_dat = (zi_adr == 4);
@@ -214,7 +216,7 @@ endgenerate
 // clock division factor number register
 always @(posedge clk, posedge rst)
 if (rst)
-  reg_div <= #1 PAR_cd_ft;
+  reg_div <= PAR_cd_ft;
 else if (zi_trn & zi_wen & zi_sel_div)
   reg_div <= zi_dat_div;
 
@@ -224,20 +226,20 @@ assign zo_dat_div = reg_div;
 // clock counter
 always @(posedge clk, posedge rst)
 if (rst)
-  cnt_clk <= #1 'd0;
+  cnt_clk <= 'b0;
 else if (ctl_run) begin
   if (cnt_clk == 'd0)
-    cnt_clk <= #1 reg_div;
+    cnt_clk <= reg_div;
   else
-    cnt_clk <= #1 cnt_clk - 1;
+    cnt_clk <= cnt_clk - 1;
 end
 
 // clock output register (divider by 2)
 always @(posedge clk)
 if (~ctl_run)
-  reg_clk <= #1 cfg_cpol;
+  reg_clk <= cfg_cpol;
 else if (cnt_clk == 0)
-  reg_clk <= #1 ~reg_clk;
+  reg_clk <= ~reg_clk;
 
 // spi clock positive and negative edge
 // used to synchronise input, output and shift registers
@@ -253,9 +255,9 @@ assign spi_sclk = reg_clk;
 
 always @(posedge clk, posedge rst)
 if (rst)
-  reg_ss <= #1 'b0;
+  reg_ss <= 'b0;
 else if (zi_trn & zi_wen & zi_sel_ss)
-  reg_ss <= #1 zi_dat_ss;
+  reg_ss <= zi_dat_ss;
 
 // bus read value of the slave select register
 assign zo_dat_ss = reg_ss;
@@ -269,15 +271,15 @@ assign spi_ss_n = ~reg_ss;
 
 always @(posedge clk, posedge rst)
 if (rst) begin
-  cfg_dir  <= #1 CFG_dir;
-  cfg_cpol <= #1 CFG_cpol;
-  cfg_cpha <= #1 CFG_cpha;
-  cfg_3wr  <= #1 CFG_3wr;
+  cfg_dir  <= CFG_dir;
+  cfg_cpol <= CFG_cpol;
+  cfg_cpha <= CFG_cpha;
+  cfg_3wr  <= CFG_3wr;
 end else if (zi_trn & zi_wen & zi_sel_cfg) begin
-  cfg_dir  <= #1 zi_dat_cfg [3   ];
-  cfg_cpol <= #1 zi_dat_cfg [ 2  ];
-  cfg_cpha <= #1 zi_dat_cfg [  1 ];
-  cfg_3wr  <= #1 zi_dat_cfg [   0];
+  cfg_dir  <= zi_dat_cfg [3   ];
+  cfg_cpol <= zi_dat_cfg [ 2  ];
+  cfg_cpha <= zi_dat_cfg [  1 ];
+  cfg_3wr  <= zi_dat_cfg [   0];
 end
 
 // bus read value of the configuration register
@@ -290,21 +292,21 @@ assign zo_dat_cfg = {4'b0, cfg_dir, cfg_cpol, cfg_cpha, cfg_3wr};
 // bit counter
 always @(posedge clk, posedge rst)
 if (rst)
-  cnt_bit <= #1 0;
+  cnt_bit <= 0;
 else if (ctl_cnt != 0)
-  cnt_bit <= #1 cnt_bit + 1;
+  cnt_bit <= cnt_bit + 1;
 
 // transfer control counter
 always @(posedge clk, posedge rst)
 if (rst)
-  ctl_cnt <= #1 0;
+  ctl_cnt <= 0;
 else begin
   // write from the CPU bus has priority
   if (zi_trn & zi_wen & zi_sel_ctl)
-    ctl_cnt <= #1 zi_dat_ctl [PAR_tc_rw-1:0];
+    ctl_cnt <= zi_dat_ctl [PAR_tc_rw-1:0];
   // decrement at the end of each transfer unit (byte by default)
   else if ( (&(cnt_bit [PAR_tu_cw-1:0])) )
-    ctl_cnt <= #1 ctl_cnt - 1;
+    ctl_cnt <= ctl_cnt - 1;
 end
 
 // spi transfer run status
@@ -313,9 +315,9 @@ assign ctl_run = (ctl_cnt != 0);
 // output enable control register
 always @(posedge clk, posedge rst)
 if (rst)
-  ctl_oe <= #1 0;
+  ctl_oe <= 0;
 else if (zi_trn & zi_wen & zi_sel_ctl)
-  ctl_oe <= #1 zi_dat_ctl [7];
+  ctl_oe <= zi_dat_ctl [7];
 
 // bus read value of the control register (output enable, transfer counter)
 assign zo_dat_ctl = {ctl_oe, {8-1-PAR_tu_cw{1'b0}}, ctl_cnt};
@@ -327,10 +329,10 @@ assign zo_dat_ctl = {ctl_oe, {8-1-PAR_tu_cw{1'b0}}, ctl_cnt};
 // shift register implementation
 always @(posedge clk)
 if (zi_trn & zi_wen & zi_sel_dat) begin
-  reg_s <= #1 zi_dat_dat;  // TODO
+  reg_s <= zi_dat_dat;  // TODO
 end else if (ctl_run) begin
-  if (cfg_dir)  reg_s <= #1 {reg_s [PAR_sh_rw-2:0], ser_i};
-  else          reg_s <= #1 {ser_i, reg_s [PAR_sh_rw-1:1]};
+  if (cfg_dir)  reg_s <= {reg_s [PAR_sh_rw-2:0], ser_i};
+  else          reg_s <= {ser_i, reg_s [PAR_sh_rw-1:1]};
 end
 
 // bus read value of the data ragister
@@ -343,12 +345,12 @@ assign zo_dat_dat = reg_s;
 // output register
 always @(posedge clk)
 if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
-  reg_o <= #1 ser_o;
+  reg_o <= ser_o;
 
 // input register
 always @(posedge clk)
 if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
-  reg_i <= #1 ser_i;
+  reg_i <= ser_i;
 
 // the serial output from the shift register depends on the direction of shifting
 assign ser_o      = (cfg_dir) ? reg_s [PAR_sh_rw-1] : reg_s [0];

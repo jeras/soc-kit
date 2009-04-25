@@ -32,34 +32,42 @@ localparam AW = 32;
 localparam SW = DW/8;
 localparam SSW = 8;
 
+localparam ZOW = DW+AW+SW+1;
+localparam ZIW = DW;
+
 // system signals
 reg clk, rst;
 
 // zbus input interface
-reg           zi_req;     // transfer request
-reg           zi_wen;     // write enable (0-read or 1-wite)
-reg  [AW-1:0] zi_adr;     // address
-reg  [SW-1:0] zi_sel;     // byte select
-reg  [DW-1:0] zi_dat;     // data
-reg           zi_ack;     // transfer acknowledge
+wire           zms_req;     // transfer request
+wire [ZOW-1:0] zms_bus;     // transfer payload
+wire           zms_ack;     // transfer acknowledge
+// translated zbus input interface bus
+wire  [DW-1:0] zms_dat;     // data
+wire  [AW-1:0] zms_adr;     // address
+wire  [SW-1:0] zms_sel;     // byte select
+wire           zms_wen;     // write enable (0-read or 1-wite)
 // zbus output interface
-wire          zo_req;     // transfer request
-wire [DW-1:0] zo_dat;     // data
-wire          zo_ack;     // transfer acknowledge
+wire           zsm_req;     // transfer request
+wire [ZIW-1:0] zsm_bus;     // data
+wire           zsm_ack;     // transfer acknowledge
 
 // SPI signals
 wire [SSW-1:0] ss_n;
 wire           sclk;
 wire           miso;
 wire           mosi;
-wire           mosi_oe;
+// SPI mosi tristate buffer signals
+wire           mosi_i;
+wire           mosi_o;
+wire           mosi_e;
 
 //////////////////////////////////////////////////////////////////////////////
 // testbench                                                                //
 //////////////////////////////////////////////////////////////////////////////
 
 always
-  clk = #4 ~clk;
+  #4 clk <= ~clk;
 
 initial begin
   clk = 1'b1;
@@ -70,6 +78,40 @@ initial begin
   // start a zbus cycle
 
 end
+
+// request for a dumpfile
+initial begin
+  $dumpfile("test.vcd");
+  $dumpvars(0, spi_tb);
+  #100000;
+  $finish;
+end
+
+//////////////////////////////////////////////////////////////////////////////
+// zbus master instance                                                     //
+//////////////////////////////////////////////////////////////////////////////
+
+zbus #(
+  .ZOW     (DW+AW+SW+1),
+  .ZIW     (DW)
+) zbus (
+  // system signals
+  .clk     (clk),
+  .rst     (rst),
+  // output interface
+  .zo_req  (zms_req),  // transfer request
+  .zo_bus  (zms_bus),  // payload
+  .zo_ack  (zms_ack),  // transfer acknowledge (bus ready)
+  // input interface
+  .zi_req  (zsm_req),  // transfer request
+  .zi_bus  (zsm_bus),  // payload
+  .zi_ack  (zsm_ack)   // transfer acknowledge (bus ready)
+);
+
+assign zms_dat = zms_bus [31: 0];
+assign zms_adr = zms_bus [63:32];
+assign zms_sel = zms_bus [67:64];
+assign zms_wen = zms_bus [   68];
 
 //////////////////////////////////////////////////////////////////////////////
 // spi controller instance                                                  //
@@ -103,16 +145,16 @@ spi_zbus #(
   .clk       (clk),
   .rst       (rst),
   // zbus input interface
-  .zi_req    (zi_req),     // transfer request
-  .zi_wen    (zi_wen),     // write enable (0-read or 1-wite)
-  .zi_adr    (zi_adr),     // address
-  .zi_sel    (zi_sel),     // byte select
-  .zi_dat    (zi_dat),     // data
-  .zi_ack    (zi_ack),     // transfer acknowledge
+  .zi_req    (zms_req),     // transfer request
+  .zi_wen    (zms_wen),     // write enable (0-read or 1-wite)
+  .zi_adr    (zms_adr),     // address
+  .zi_sel    (zms_sel),     // byte select
+  .zi_dat    (zms_dat),     // data
+  .zi_ack    (zms_ack),     // transfer acknowledge
   // zbus output interface
-  .zo_req    (zo_req),     // transfer request
-  .zo_dat    (zo_dat),     // data
-  .zo_ack    (zo_ack),     // transfer acknowledge
+  .zo_req    (zsm_req),     // transfer request
+  .zo_dat    (zsm_bus),     // data
+  .zo_ack    (zsm_ack),     // transfer acknowledge
   // additional processor interface signals
   .irq       (),
   // SPI signals
@@ -123,6 +165,14 @@ spi_zbus #(
   .spi_mosi_o (mosi_o), // serial master output slave input or threewire bidirectional (output)
   .spi_mosi_e (mosi_e)  // serial master output slave input or threewire bidirectional (output enable)
 );
+
+//////////////////////////////////////////////////////////////////////////////
+// spi tristate buffers                                                     //
+//////////////////////////////////////////////////////////////////////////////
+
+assign mosi_i = mosi;
+assign mosi   = mosi_e ? mosi_o : 1'bz;
+
 
 
 endmodule

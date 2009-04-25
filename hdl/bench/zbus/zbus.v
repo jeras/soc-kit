@@ -23,20 +23,14 @@
 
 `timescale  1ns / 1ps
 
-module zbus_master #(
+module zbus #(
   // essential bus parameters
-  parameter DW     = 32,         // data width
-  parameter AW     = 32,         // address width
-  parameter SW     = DW/8,       // byte select width
-  parameter DE     = "BIG",      // data endianness ("BIG" or "LITTLE")
-  parameter FD     = 1,          // request fifo deepth
-  // bus parameter
-  parameter BW     = 1 + SW + AW + DW,
-  // supported features
-  parameter ORDER  = 0,
-  parameter INTERLEAVE = 0,
+  parameter ZON    = 1,         // number of zbus output busses
+  parameter ZOW    = ZON*32,    // sum of all zbus output bus widths
+  parameter ZIN    = 1,         // number of zbus input busses
+  parameter ZIW    = ZIN*32,    // sum of all zbus output bus widths
   // simulation behaviour parameters
-  parameter IDLE   = 1'b1,       // bus idle state
+  parameter IDLE   = 1'bx,       // bus idle state
   // input file (program), output file (read data)
   parameter ZO_FILE = "",        // output interface filename (program)
   parameter ZI_FILE = "",        // inptu interface  filename (received data)
@@ -45,41 +39,25 @@ module zbus_master #(
   parameter AUTO   = 0
 )(
   // system signals
-  input  wire          clk,
-  input  wire          rst,
-  // output interface standard signals
-  output wire          zo_req,   // transfer request
-  output wire          zo_bus,   // payload
-  input  wire          zo_ack,   // transfer acknowledge (bus ready)
-  // output interface custom signals
-  output wire          zo_wen,   // write enable (0-read or 1-wite)
-  output wire [DW-1:0] zo_dat,   // data
-  output wire [AW-1:0] zo_adr,   // address
-  output wire [SW-1:0] zo_sel,   // byte select
+  input  wire           clk,
+  input  wire           rst,
+  // output interface
+  output reg  [ZON-1:0] zo_req,   // transfer request
+  output reg  [ZOW-1:0] zo_bus,   // payload
+  input  wire [ZON-1:0] zo_ack,   // transfer acknowledge (bus ready)
   // input interface
-  input  wire          zi_req,   // transfer request
-  input  wire          zi_bus,   // payload
-  output wire          zi_ack,   // transfer acknowledge (bus ready)
-  // input interface custom signals
-  input  wire          zi_wen,   // write enable (0-read or 1-wite)
-  input  wire [DW-1:0] zi_dat,   // data
-  input  wire [AW-1:0] zi_adr,   // address
-  input  wire [SW-1:0] zi_sel    // byte select
+  input  wire [ZIN-1:0] zi_req,   // transfer request
+  input  wire [ZIW-1:0] zi_bus,   // payload
+  output wire [ZIN-1:0] zi_ack    // transfer acknowledge (bus ready)
 );
 
 //////////////////////////////////////////////////////////////////////////////
 // local parameters and signals                                             //
 //////////////////////////////////////////////////////////////////////////////
 
-localparam FCW = $clog2(FD);
-localparam AM  = {BW{1'b1}};
-
-// bus status and events
-wire    zo_rdy, zi_rdy;         // bus ready for a new transfer
-wire    zo_trn, zi_trn;         // bus transfer in progres
-
-// request pipeline counters
-wire [FCW-1:0] zo_cnt, zi_cnt;
+// bus transfer
+wire [ZON-1:0] zo_trn;
+wire [ZIN-1:0] zi_trn;
 
 // master status
 reg     run = 0;   // master running status
@@ -89,13 +67,9 @@ integer fp_i, fs_i = 0; // program input
 integer fp_o, fs_o = 0; // read output
 
 // program file parsing variables
-reg [8*8-1:0] inst, instr_r, text;
-reg     [7:0] c;
-reg [8*8-1:0] endian;
-integer       shift;
-integer       width;
-integer       address;
-integer       data;
+reg [  8*8-1:0] inst;
+reg [128*8-1:0] text;
+reg       [7:0] c;
 
 ///////////////////////////////////////////////////////////////////////////////
 // initialization and on request tasks                                       //
@@ -103,8 +77,7 @@ integer       data;
 
 initial begin
   $display ("DEBUG: Starting master");
-  if (AUTO)  start (FILE_I, FILE_O);
-  $finish;
+  if (AUTO)  start (ZI_FILE, ZO_FILE);
 end
 
 task start (
@@ -140,18 +113,7 @@ end endtask
 assign zo_trn = zo_req & zo_ack;
 assign zi_trn = zi_req & zi_ack;
 
-assign zo_rdy = (zo_cnt <= FD);
-assign zi_ack = (zi_cnt <= FD);
-
-// pending read request fifos
-always @ (posedge clk, posedge rst)
-if (rst) begin
-  zo_cnt <= 'd0;
-  zi_cnt <= 'd0;
-end else begin
-  if (zo_trn) zo_cnt = zo_cnt + 'd1;
-  if (zi_trn) zi_cnt = zi_cnt + 'd1;
-end
+assign zi_ack = 1'b1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // bus otput machine                                                         //
@@ -161,7 +123,7 @@ always @ (posedge clk, posedge rst)
 if (rst) begin
   // set the bus into an idle state
   zo_req <= 1'b0;
-  zo_bus <= {BW{IV}};
+  zo_bus <= {ZOW{IDLE}};
 end else if (run) begin
   if (zo_trn) begin
     // wait for a ne line in the file and skip comment lines
@@ -192,33 +154,17 @@ end else if (run) begin
       // bus generic instructions
       "idle" : begin
         zo_req <= 1'b0;
-        zo_bus <= {BW{IV}};
-      end
-      "write", "read" : begin
-        // parsing
-        fs_i = $fscanf (fp_i, "%s %d %h ", endian, width, address);
-        if (inst == "write")  fs_i = $fscanf (fp_i, "%h ", data);
-        // processing
-        byte_select = {SW{1'b1}};
-        mask        = {DW{1'b1}};
-        case (endian)
-          "be"    : shift = (DW-width)/8 - (address & ~AM);
-          "le"    : shift =                (address & ~AM);
-          default : $display ("ERROR: Parsing error: Unsuported endianness: %0s", endian);
-        endcase
-        // applying signals to the bus
-        hwdata <= (inst == "write") ? (data ^ mask) : {DW{IV}};
+        zo_bus <= {ZOW{IDLE}};
       end
       // zbus raw access
-      "zbus_raw" : begin
+      "raw" : begin
         fs_i = $fscanf (fp_i, "%h", zo_bus);
-        if (inst == "wb_raw")  raw <= 1;
       end
       // the default is an idle bus
       default  : begin
         $display ("WARNING: Parsing error: Unrecognized instruction \"%s\".", inst);
         zo_req <= 1'b0;
-        zo_bus <= {BW{IV}};
+        zo_bus <= {ZOW{IDLE}};
       end
     endcase
   end
@@ -230,14 +176,7 @@ end
 
 always @ (posedge clk)
 if (zi_trn) begin
-  $display (fp_o, "%h", ti_bus);
-//  case (instr_r)
-//    "write", "read" : begin end
-//    default : begin
-//      $fwrite (fp_o, " %s", hresp ? "ERROR" : "OKAY");
-//    end
-//  endcase
-//  $fwrite (fp_o, "/n");
+  $display (fp_o, "%h", zi_bus);
 end
 
 
