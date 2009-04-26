@@ -55,21 +55,21 @@ module zbus #(
 // local parameters and signals                                             //
 //////////////////////////////////////////////////////////////////////////////
 
-// bus transfer
-wire [ZON-1:0] zo_trn;
-wire [ZIN-1:0] zi_trn;
+// bus transfer and bus readr signals
+wire [ZON-1:0] zo_trn, zo_rdy;
+wire [ZIN-1:0] zi_trn, zi_rdy;
 
 // master status
 reg     run = 0;   // master running status
 
 // file pointer and access status
-integer fp_i, fs_i = 0; // program input
-integer fp_o, fs_o = 0; // read output
+integer fp_zo, fs_zo = 0; // program input
+integer fp_zi, fs_zi = 0; // read output
 
 // program file parsing variables
-reg [  8*8-1:0] inst;
-reg [128*8-1:0] text;
-reg       [7:0] c;
+reg [  3*8-1:0] inst;
+//reg [128*8-1:0] text;
+//reg       [7:0] c;
 
 ///////////////////////////////////////////////////////////////////////////////
 // initialization and on request tasks                                       //
@@ -77,25 +77,25 @@ reg       [7:0] c;
 
 initial begin
   $display ("DEBUG: Starting master");
-  if (AUTO)  start (ZI_FILE, ZO_FILE);
+  if (AUTO)  start (ZO_FILE, ZI_FILE);
 end
 
 task start (
-  input reg [256*8-1:0] filename_i,
-  input reg [256*8-1:0] filename_o
+  input reg [256*8-1:0] zo_file,
+  input reg [256*8-1:0] zi_file
 ); begin
-  if (filename_i != "") begin
-    fp_i = $fopen (filename_i, "r");
-    $display ("DEBUG: Opening program input file %s", filename_i);
+  if (zo_file != "") begin
+    fp_zo = $fopen (zo_file, "r");
+    $display ("DEBUG: Opening zbus output port file %0s", zo_file);
   end else begin
-    $display ("ERROR: No program input file specified!");
+    $display ("ERROR: No zbus output port file specified!");
     $finish;
   end
-  if (filename_o != "") begin
-    fp_o = $fopen (filename_o, "w");
-    $display ("DEBUG: Opening read output file %s", filename_o);
+  if (zi_file != "") begin
+    fp_zi = $fopen (zi_file, "w");
+    $display ("DEBUG: Opening zbus input port file %0s", zi_file);
   end else begin
-    $display ("DEBUG: No read ouptut file specified!");
+    $display ("DEBUG: No zbus input port file specified!");
     $finish;
   end
   run = 1;
@@ -113,6 +113,10 @@ end endtask
 assign zo_trn = zo_req & zo_ack;
 assign zi_trn = zi_req & zi_ack;
 
+// bus ready for a new request
+assign zo_rdy = ~zo_req | zo_trn;
+assign zi_rdy = ~zi_req | zi_trn;
+
 assign zi_ack = 1'b1;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,40 +129,36 @@ if (rst) begin
   zo_req <= 1'b0;
   zo_bus <= {ZOW{IDLE}};
 end else if (run) begin
-  if (zo_trn) begin
+  if (zo_rdy) begin
     // wait for a ne line in the file and skip comment lines
-    fs_i = 0;
-    while (fs_i == 0) begin
-      fs_i = $fscanf (fp_i, "%s ", inst);
+    fs_zo = 0;
+    while (fs_zo == 0) begin
+      fs_zo = $fscanf (fp_zo, "%s ", inst);
       if (inst == "#") begin
-        while ($fgetc(fp_i) != "\n") begin end
-        fs_i = 0;
+        while ($fgetc(fp_zo) != "\n") begin end
+        fs_zo = 0;
       end
     end
+    // TODO
+    $display ("DEBUG: instruction: %s", inst);
     // instruction decoder
     case (inst)
-      // system instructions
-      "display" : begin
-        fs_i = $fscanf (fp_i, "%s ", text);
-        $display ("INFO: Master program requested to display \"%s\".", text);
+      // zbus request
+      "req" : begin
+        zo_req <= 1'b1;
+        fs_zo = $fscanf (fp_zo, "%h\n", zo_bus);
       end
-      "end"    : begin
-        run <= 0;
-      end
-      "finish" : begin
-        $fclose (fp_i);
-        $fflush (fp_o);
-        $fclose (fp_o);
-        $finish;
-      end
-      // bus generic instructions
-      "idle" : begin
+      // zbus idle
+      "idl" : begin
         zo_req <= 1'b0;
         zo_bus <= {ZOW{IDLE}};
       end
-      // zbus raw access
-      "raw" : begin
-        fs_i = $fscanf (fp_i, "%h", zo_bus);
+      // system instructions
+      "fin" : begin
+        $fclose (fp_zo);
+        $fflush (fp_zi);
+        $fclose (fp_zi);
+        $finish;
       end
       // the default is an idle bus
       default  : begin
@@ -176,7 +176,8 @@ end
 
 always @ (posedge clk)
 if (zi_trn) begin
-  $display (fp_o, "%h", zi_bus);
+  $display ("there is an ZI transfer");
+  $fdisplay (fp_zi, "%h", zi_bus);
 end
 
 

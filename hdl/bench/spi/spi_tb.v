@@ -35,6 +35,9 @@ localparam SSW = 8;
 localparam ZOW = DW+AW+SW+1;
 localparam ZIW = DW;
 
+localparam ZO_FILE = "tmp/zo_file.txt";
+localparam ZI_FILE = "tmp/zi_file.txt";
+
 // system signals
 reg clk, rst;
 
@@ -76,7 +79,7 @@ initial begin
   #1;
   rst = 1'b0;
   // start a zbus cycle
-
+  zbus.start(ZO_FILE, ZI_FILE);
 end
 
 // request for a dumpfile
@@ -93,7 +96,9 @@ end
 
 zbus #(
   .ZOW     (DW+AW+SW+1),
-  .ZIW     (DW)
+  .ZIW     (DW),
+  .ZO_FILE (ZO_FILE),
+  .ZI_FILE (ZI_FILE)
 ) zbus (
   // system signals
   .clk     (clk),

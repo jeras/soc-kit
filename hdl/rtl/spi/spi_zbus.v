@@ -141,10 +141,10 @@ assign bus_adr = zi_adr [2:0];
 assign bus_sel = zi_sel;
 
 // request acknowledge
-assign zi_ack = zi_req & zo_ack;
+assign zi_ack = zi_req & (~zo_req | zo_ack);
 
 // zbus output request
-assign zo_req = zi_req;
+assign zo_req = zi_req & ~zi_wen;
 
 // address decoder
 assign zi_sel_dat = (zi_adr == 4);

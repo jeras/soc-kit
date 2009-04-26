@@ -5,7 +5,17 @@ sys.path.append('../zbus/')
 sys.path.append('src/bench/zbus/')
 import zbus
 
-#cpu = zbus.zbus_per (zo_file = "zo_file.txt", zi_file = "zi_file.txt")
-cpu = zbus.zbus_per ()
+cpu = zbus.zbus_per (zo_file = "tmp/zo_file.txt", zi_file = "tmp/zi_file.txt")
 
-cpu.write_32b (33, 177)
+cpu.write_32b (33, 0x54)
+cpu.write_32b (34, 0x55)
+cpu.zo_idl()
+cpu.write_32b (35, 0x56)
+cpu.zo_idl()
+
+for addr in range(4) :
+  data = cpu.read_32b (4*addr)
+  print type(data)
+  print data
+
+cpu.zo_fin()
