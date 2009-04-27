@@ -1,7 +1,9 @@
+#!/bin/sh
+
 iverilog -o tmp/spi -I hdl/bench/zbus/ -I hdl/bench/spi/ hdl/rtl/spi/spi_zbus.v hdl/bench/zbus/zbus.v hdl/bench/spi/spi_tb.v
 rm tmp/zo_file.txt tmp/zi_file.txt
-mkfifo tmp/zo_file.txt
-touch tmp/zi_file.txt
+mkfifo tmp/zo_file.txt tmp/zi_file.txt
+#mkfifo tmp/zo_file.txt && touch tmp/zi_file.txt
 vvp tmp/spi -lxt2
 mv test.vcd tmp/test.lx2
 

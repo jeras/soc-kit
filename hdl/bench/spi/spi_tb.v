@@ -70,16 +70,16 @@ wire           mosi_e;
 //////////////////////////////////////////////////////////////////////////////
 
 always
-  #4 clk <= ~clk;
+  #5 clk <= ~clk;
 
 initial begin
+  zbus.start(ZO_FILE, ZI_FILE);
   clk = 1'b1;
   rst = 1'b1;
-  repeat (8) @ (posedge clk);
+  repeat (4) @ (posedge clk);
   #1;
   rst = 1'b0;
   // start a zbus cycle
-  zbus.start(ZO_FILE, ZI_FILE);
 end
 
 // request for a dumpfile
