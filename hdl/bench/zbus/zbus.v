@@ -55,6 +55,8 @@ module zbus #(
 // local parameters and signals                                             //
 //////////////////////////////////////////////////////////////////////////////
 
+reg  [ZOW-1:0] zo_bus_r;
+
 // bus transfer and bus readr signals
 wire [ZON-1:0] zo_trn, zo_rdy;
 wire [ZIN-1:0] zi_trn, zi_rdy;
@@ -85,19 +87,22 @@ task start (
   input reg [256*8-1:0] zi_file
 ); begin
   if (zo_file != "") begin
-    fp_zo = $fopen (zo_file, "r");
     $display ("DEBUG: Opening zbus output port file %0s", zo_file);
+    fp_zo = $fopen (zo_file, "r");
+    $display ("DEBUG: Opened zbus output port file %0s", zo_file);
   end else begin
     $display ("ERROR: No zbus output port file specified!");
     $finish;
   end
   if (zi_file != "") begin
-    fp_zi = $fopen (zi_file, "w");
     $display ("DEBUG: Opening zbus input port file %0s", zi_file);
+    fp_zi = $fopen (zi_file, "w");
+    $display ("DEBUG: Opened zbus input port file %0s", zi_file);
   end else begin
     $display ("DEBUG: No zbus input port file specified!");
     $finish;
   end
+  //$fdisplay (fp_zi, "");
   run = 1;
 end endtask
 
@@ -129,32 +134,48 @@ if (rst) begin
   zo_req <= 1'b0;
   zo_bus <= {ZOW{IDLE}};
 end else if (run) begin
+  // zi_ports
+  if (zi_trn) begin
+    $display ("ZI: req %h", zi_bus);
+    $fdisplay (fp_zi, "req %h", zi_bus);
+  end else begin
+    $display ("ZI: idl");
+    $fdisplay (fp_zi, "idl");
+  end
+  $fflush (fp_zi);
+  // zo ports
   if (zo_rdy) begin
     // wait for a ne line in the file and skip comment lines
+    $display ("ZO: entering file read loop");
     fs_zo = 0;
     while (fs_zo == 0) begin
-      fs_zo = $fscanf (fp_zo, "%s ", inst);
+      $display ("ZO: read attempt follows");
+      fs_zo = $fscanf (fp_zo, "%s", inst);
+      $display ("ZO: read attempt status = %d", fs_zo);
       if (inst == "#") begin
         while ($fgetc(fp_zo) != "\n") begin end
         fs_zo = 0;
       end
     end
     // TODO
-    $display ("DEBUG: instruction: %s", inst);
     // instruction decoder
     case (inst)
       // zbus request
       "req" : begin
+        fs_zo = $fscanf (fp_zo, " %h\n", zo_bus_r);
         zo_req <= 1'b1;
-        fs_zo = $fscanf (fp_zo, "%h\n", zo_bus);
+        zo_bus <= zo_bus_r;
+        $display ("ZO: req %h", zo_bus);
       end
       // zbus idle
       "idl" : begin
         zo_req <= 1'b0;
         zo_bus <= {ZOW{IDLE}};
+        $display ("ZO: idl");
       end
       // system instructions
       "fin" : begin
+        $display ("ZO: fin");
         $fclose (fp_zo);
         $fflush (fp_zi);
         $fclose (fp_zi);
@@ -168,16 +189,6 @@ end else if (run) begin
       end
     endcase
   end
-end
-
-///////////////////////////////////////////////////////////////////////////////
-// bus input machine                                                         //
-///////////////////////////////////////////////////////////////////////////////
-
-always @ (posedge clk)
-if (zi_trn) begin
-  $display ("there is an ZI transfer");
-  $fdisplay (fp_zi, "%h", zi_bus);
 end
 
 
