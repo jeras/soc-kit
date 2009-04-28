@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //                                                                          //
-//  Zbus device (master/slave) model                                        //
+//  general purpuse verilog <-> software interface                          //
 //                                                                          //
 //  Copyright (C) 2009  Iztok Jeras                                         //
 //                                                                          //
@@ -23,75 +23,74 @@
 
 `timescale  1ns / 1ps
 
-module zbus #(
-  // essential bus parameters
-  parameter ZON = 1,         // number of zbus output busses
-  parameter ZOW = ZON*32,    // sum of all zbus output bus widths
-  parameter ZIN = 1,         // number of zbus input busses
-  parameter ZIW = ZIN*32,    // sum of all zbus output bus widths
+module interface #(
+  // bus parameters
+  parameter NO  = 8,       // number of output signals
+  parameter NI  = 8,       // number of input  signals
   // software interface parameters
-  parameter FNW = "",        // file name for write file
-  parameter FNR = "",        // file name for read  file
+  parameter FNO = "",      // file name for output signals (read  file)
+  parameter FNI = "",      // file name for input  signals (write file)
+  parameter DT  = "hex",   // data type ("hex" (default), "bin", "raw")
   // presentation
-  parameter NAME   = "noname",
-  parameter AUTO   = 0
+  parameter NAME = "noname",
+  parameter AUTO = 0
 )(
-  // system signals
-  input  wire           clk,
-  input  wire           rst,
-  // output interface
-  output reg  [ZON-1:0] zo_req,   // transfer request
-  output reg  [ZOW-1:0] zo_bus,   // payload
-  input  wire [ZON-1:0] zo_ack,   // transfer acknowledge (bus ready)
-  // input interface
-  input  wire [ZIN-1:0] zi_req,   // transfer request
-  input  wire [ZIW-1:0] zi_bus,   // payload
-  output reg  [ZIN-1:0] zi_ack    // transfer acknowledge (bus ready)
+  input  wire          c,  // clock
+  output reg  [NO-1:0] o,  // output signals
+  input  wire [NI-1:0] i   // input  signals
 );
 
 //////////////////////////////////////////////////////////////////////////////
 // local parameters and signals                                             //
 //////////////////////////////////////////////////////////////////////////////
 
-reg  [ZON-1:0] zo_req_r;
-reg  [ZOW-1:0] zo_bus_r;
-reg  [ZIN-1:0] zo_ack_r;
-
-// bus transfer and bus readr signals
-wire [ZON-1:0] zo_trn;
-wire [ZIN-1:0] zi_trn;
-
 // master status
 reg     run = 0;   // master running status
 
 // file pointer and access status
-integer fpw, fsw = 0; // write file
-integer fpr, fsr = 0; // read  file
+integer fpi, fsi = 0;  // write file
+integer fpo, fso = 0;  // read  file
 
 // program file parsing variables
-reg [  3*8-1:0] inst;
+reg [3*8-1:0] cmd;
+
+reg [18*8-1:0] t;
+reg [7:0] ch;
+integer j;
 
 ///////////////////////////////////////////////////////////////////////////////
-// initialization and on request tasks                                       //
+// initialization                                                            //
 ///////////////////////////////////////////////////////////////////////////////
 
 initial begin
   $display ("DEBUG: Starting master");
-  if (AUTO)  start (FNW, FNR);
+  if (AUTO)  start (FNO, FNI);
 end
 
 task start (
-  input reg [256*8-1:0] fnw,
-  input reg [256*8-1:0] fnr,
+  input reg [256*8-1:0] fno,
+  input reg [256*8-1:0] fni
 ); begin
-  // write file
-  $display ("DEBUG: Opening write file.");
-  if (fnw != "")  fpw = $fopen (fnw, "w");
-  else debug_missing_file_name ();
-  // read files are opened
-  $display ("DEBUG: Opening read  file.");
-  if (fnr != "")  fpr = $fopen (fnr, "r");
-  else debug_missing_file_name ();
+  // open file for output signals (read)  file
+  $display ("DEBUG: Opening output signals (read)  file: \"%0s\"", fno);
+  fpo = $fopen (fno, "r");
+  if (fpo)  $display ("DEBUG: File open SUCESS");
+  else      $display ("DEBUG: File open FAIL");
+  // open file for input  signals (write) file
+  $display ("DEBUG: Opening input  signals (write) file: \"%0s\"", fni);
+  fpi = $fopen (fni, "w");
+  if (fpi)  $display ("DEBUG: File open SUCESS");
+  else      $display ("DEBUG: File open FAIL");
+  // read the first output values
+//  for (j=0; j<18; j=j+1) begin
+//    ch = $fgetc(fpo);
+//    $write ("\'%s\'", ch);
+//  end
+//  $display ("end of string");
+//  fso = $fread   (fpo, "%s", t);
+//  $display ("interface:o %s", t);
+  fso = $fscanf   (fpo, "%h", o);
+  $display ("interface:o %h", o);
   run = 1;
 end endtask
 
@@ -99,39 +98,21 @@ task stop; begin
   run = 0;
 end endtask
 
-task debug_missing_file_name (); begin
-  $display ("ERROR: No zbus output port file specified!");
-  $finish;
-end
-
 ///////////////////////////////////////////////////////////////////////////////
 // implementation                                                            //
 ///////////////////////////////////////////////////////////////////////////////
 
-// bus transfer in progres event
-assign zo_trn = zo_req & zo_ack;
-assign zi_trn = zi_req & zi_ack;
-
-reg loop;
-
-always @ (posedge clk, posedge rst)
-if (rst) begin
-  // set the bus into an idle state
-  zo_req <= 1'b0;
-  zo_bus <= {ZOW{IDLE}};
-end else if (run) begin
+always @ (posedge c)
+if (run) begin
   // file writes
-  $fdisplay ("zbus:w %h %h %h\n", zi_req, zo_ack, zi_bus);
-  $fdisplay (fp_zi_wf, "%h %h %h\n", zi_req, zo_ack, zi_bus);
+  $display ("interface:i %h", i);
+  $fdisplay       (fpi, "%h", i);
   // file reads
 //  loop = 0;
 //  while (loop == 0) begin
-  fs_zo = $fscanf (fp_zo_rf, "%h %h %h\n", zo_req_r, zi_ack_r, zo_bus_r);
+  fso = $fscanf   (fpo, "%h", o);
 //  end
-  $display ("zbus:r %h %h %h\n", zo_req_r, zi_ack_r, zo_bus_r);
-  zo_req <= zo_req_r;
-  zo_bus <= zo_bus_r;
-  zi_ack <= zi_ack_r;
+  $display ("interface:o %h", o);
 end
 
 

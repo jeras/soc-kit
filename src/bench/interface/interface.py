@@ -1,23 +1,24 @@
 #!/usr/bin/python
 
+import sys
 
 class interface () :
   """
   """
 
-  def __init__  (self, wo = 0, wi = 0, fno = "interface-o.fifo", fi = "interface-i.fifo") :
+  def __init__  (self, wo = 0, wi = 0, fno = "interface-o.fifo", fni = "interface-i.fifo") :
     """
     """
     # output ports
     self.wo = wo
-    print ("DEBUG: opening write file")
+    print ("DEBUG: Opening output signals (write) file: \"%s\"" % fno)
     self.fpo = open (fno, 'w')
     print ("DEBUG: write file opened")
     # input ports
     self.wi = wi
-    print ("DEBUG: opening read file")
+    print ("DEBUG: Opening input  signals (read)  file: \"%s\"." % fni)
     self.fpi = open (fni, 'r')
-    print ("DEBUG: read file opened")
+    print ("DEBUG: read  file opened")
 
   def rd (self) :
     ""
@@ -29,6 +30,7 @@ class interface () :
     ""
     print ("O: %s" % o)
     self.fpo.write(o+"\n")
+    self.fpo.flush()
 
 
 class zbus_zpa (interface) :
@@ -43,7 +45,14 @@ class zbus_zpa (interface) :
     self.SW = DW/8
     interface.__init__(self, wo = 1+self.SW+AW+DW, wi = DW, fno = fno, fni = fni)
     # bus initialization and dummy read
-    i = self.idle(8)
+#    sys.stdin.read(1)
+#    self.wr ("4xxxxxxxxxxxxxxx32\n")
+#    self.fpo.flush()
+#    sys.stdin.read(1)
+#    self.wr ("4_x_xxxxxxxx_xxxxxxxx \n")
+#    self.rd ()
+    i = self.idle()
+    sys.stdin.read(1)
 
   def write_32b (self, address, data, select = 0xf) :
     o = "%1x_%1x_%08x_%08x" % (4+2+1, select, address, data)
@@ -69,8 +78,8 @@ class zbus_zpa (interface) :
       if zi_req : return eval(i[1:8])
 
   def idle (self, n=1) :
-    o = "%1x_%s_%s_%s\n" % (4+0+0, "x", "xxxxxxxx", "xxxxxxxx")
-    for (x in range(n))
+    o = "%1x_%s_%s_%s" % (4+0+0, "x", "xxxxxxxx", "xxxxxxxx")
+    for x in range(n) :
       self.wr (o)
       i = self.rd ()
     return i

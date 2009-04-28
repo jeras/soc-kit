@@ -32,28 +32,24 @@ localparam AW = 32;
 localparam SW = DW/8;
 localparam SSW = 8;
 
-localparam ZOW = DW+AW+SW+1;
-localparam ZIW = DW;
-
-localparam ZO_FILE = "tmp/zo_file.txt";
-localparam ZI_FILE = "tmp/zi_file.txt";
+localparam FNO = "tmp/interface-o.fifo";
+localparam FNI = "tmp/interface-i.fifo";
 
 // system signals
 reg clk, rst;
 
 // zbus input interface
-wire           zms_req;     // transfer request
-wire [ZOW-1:0] zms_bus;     // transfer payload
-wire           zms_ack;     // transfer acknowledge
+wire          zms_req;     // transfer request
+wire          zms_ack;     // transfer acknowledge
 // translated zbus input interface bus
-wire  [DW-1:0] zms_dat;     // data
-wire  [AW-1:0] zms_adr;     // address
-wire  [SW-1:0] zms_sel;     // byte select
-wire           zms_wen;     // write enable (0-read or 1-wite)
+wire [DW-1:0] zms_dat;     // data
+wire [AW-1:0] zms_adr;     // address
+wire [SW-1:0] zms_sel;     // byte select
+wire          zms_wen;     // write enable (0-read or 1-wite)
 // zbus output interface
-wire           zsm_req;     // transfer request
-wire [ZIW-1:0] zsm_bus;     // data
-wire           zsm_ack;     // transfer acknowledge
+wire          zsm_req;     // transfer request
+wire          zsm_ack;     // transfer acknowledge
+wire [DW-1:0] zsm_dat;     // data
 
 // SPI signals
 wire [SSW-1:0] ss_n;
@@ -73,12 +69,14 @@ always
   #5 clk <= ~clk;
 
 initial begin
-  zbus.start(ZO_FILE, ZI_FILE);
+  zbus.start(FNO, FNI);
   clk = 1'b1;
   rst = 1'b1;
   repeat (4) @ (posedge clk);
   #1;
   rst = 1'b0;
+  repeat (16) @ (posedge clk);
+  $finish;
   // start a zbus cycle
 end
 
@@ -86,37 +84,22 @@ end
 initial begin
   $dumpfile("test.vcd");
   $dumpvars(0, spi_tb);
-  #100000;
-  $finish;
 end
 
 //////////////////////////////////////////////////////////////////////////////
 // zbus master instance                                                     //
 //////////////////////////////////////////////////////////////////////////////
 
-zbus #(
-  .ZOW     (DW+AW+SW+1),
-  .ZIW     (DW),
-  .ZO_FILE (ZO_FILE),
-  .ZI_FILE (ZI_FILE)
+interface #(
+  .NO   (1+1+1+SW+AW+DW),
+  .NI   (1+1+        DW),
+  .FNO  (FNO),
+  .FNI  (FNI)
 ) zbus (
-  // system signals
-  .clk     (clk),
-  .rst     (rst),
-  // output interface
-  .zo_req  (zms_req),  // transfer request
-  .zo_bus  (zms_bus),  // payload
-  .zo_ack  (zms_ack),  // transfer acknowledge (bus ready)
-  // input interface
-  .zi_req  (zsm_req),  // transfer request
-  .zi_bus  (zsm_bus),  // payload
-  .zi_ack  (zsm_ack)   // transfer acknowledge (bus ready)
+  .c    (clk),
+  .o    ({zsm_ack, zms_req, zms_wen, zms_sel[3:0], zms_adr[31:0], zms_dat[31:0]}),  
+  .i    ({zms_ack, zsm_req,                                       zsm_dat[31:0]})
 );
-
-assign zms_dat = zms_bus [31: 0];
-assign zms_adr = zms_bus [63:32];
-assign zms_sel = zms_bus [67:64];
-assign zms_wen = zms_bus [   68];
 
 //////////////////////////////////////////////////////////////////////////////
 // spi controller instance                                                  //
@@ -158,7 +141,7 @@ spi_zbus #(
   .zi_ack    (zms_ack),     // transfer acknowledge
   // zbus output interface
   .zo_req    (zsm_req),     // transfer request
-  .zo_dat    (zsm_bus),     // data
+  .zo_dat    (zsm_dat),     // data
   .zo_ack    (zsm_ack),     // transfer acknowledge
   // additional processor interface signals
   .irq       (),
