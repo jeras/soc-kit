@@ -29,7 +29,7 @@ class interface () :
   def wr (self, o) :
     ""
     print ("O: %s" % o)
-    self.fpo.write(o+"\n")
+    self.fpo.write(o+" \n")
     self.fpo.flush()
 
 
@@ -52,7 +52,7 @@ class zbus_zpa (interface) :
 #    self.wr ("4_x_xxxxxxxx_xxxxxxxx \n")
 #    self.rd ()
     i = self.idle()
-    sys.stdin.read(1)
+#    sys.stdin.read(1)
 
   def write_32b (self, address, data, select = 0xf) :
     o = "%1x_%1x_%08x_%08x" % (4+2+1, select, address, data)

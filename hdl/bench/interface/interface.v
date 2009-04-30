@@ -56,7 +56,8 @@ reg [3*8-1:0] cmd;
 
 reg [18*8-1:0] t;
 reg [7:0] ch;
-integer j;
+integer cnt;
+integer cnt_str;
 
 ///////////////////////////////////////////////////////////////////////////////
 // initialization                                                            //
@@ -81,17 +82,22 @@ task start (
   fpi = $fopen (fni, "w");
   if (fpi)  $display ("DEBUG: File open SUCESS");
   else      $display ("DEBUG: File open FAIL");
-  // read the first output values
-//  for (j=0; j<18; j=j+1) begin
-//    ch = $fgetc(fpo);
-//    $write ("\'%s\'", ch);
-//  end
-//  $display ("end of string");
-//  fso = $fread   (fpo, "%s", t);
-//  $display ("interface:o %s", t);
-  fso = $fscanf   (fpo, "%h", o);
-  $display ("interface:o %h", o);
-  run = 1;
+
+  for (cnt=0; cnt<8; cnt=cnt+1) begin
+    //interface_o;
+    //interface_i;
+    for (cnt_str=0; cnt_str<8; cnt_str=cnt_str+1) begin
+      ch = $fgetc (fpo);
+      $display("%s", ch);
+    end
+    $fwrite (fpi, "test message");
+    @ (posedge c);
+  end
+  $finish();
+//  interface_o;
+//  interface_i;
+
+//  run = 1;
 end endtask
 
 task stop; begin
@@ -102,18 +108,37 @@ end endtask
 // implementation                                                            //
 ///////////////////////////////////////////////////////////////////////////////
 
-always @ (posedge c)
-if (run) begin
-  // file writes
-  $display ("interface:i %h", i);
-  $fdisplay       (fpi, "%h", i);
-  // file reads
-//  loop = 0;
-//  while (loop == 0) begin
-  fso = $fscanf   (fpo, "%h", o);
-//  end
-  $display ("interface:o %h", o);
-end
+//always @ (posedge c)
+//if (run) begin
+//  interface_o;
+//  interface_i;
+//end
 
+task interface_i; begin
+  //$fdisplay       (fpi, "%h", i);
+  //$fwrite         (fpi, "%h \n \n", i);
+  $fwrite         (fpi, "test message");
+  $display ("interface:i %h", i);
+end endtask
+
+task interface_o; begin
+  fso = 0;
+  while (fso == 0) begin
+    fso = $fscanf (fpo, "%h", o);
+    //$write ("%d", fso);
+    //$display ("DEBUG: Opening input  signals (write) file: \"%0d\"", fso);
+  end
+  $display ("interface:o %h", o);
+end endtask
 
 endmodule
+
+// read the first output values
+//  for (j=0; j<18; j=j+1) begin
+//    ch = $fgetc(fpo);
+//    $write ("\'%s\'", ch);
+//  end
+//  $display ("end of string");
+//  fso = $fread   (fpo, "%s", t);
+//  $display ("interface:o %s", t);
+
