@@ -69,7 +69,7 @@ always
   #5 clk <= ~clk;
 
 initial begin
-  zbus.start(FNO, FNI);
+//  zbus.start(FNO, FNI);
   clk = 1'b1;
   rst = 1'b1;
   repeat (4) @ (posedge clk);
@@ -96,9 +96,10 @@ interface #(
   .FNO  (FNO),
   .FNI  (FNI)
 ) zbus (
-  .c    (clk),
-  .o    ({zsm_ack, zms_req, zms_wen, zms_sel[3:0], zms_adr[31:0], zms_dat[31:0]}),  
-  .i    ({zms_ack, zsm_req,                                       zsm_dat[31:0]})
+  .clk  (clk),
+  .rst  (rst),
+  .d_o  ({zsm_ack, zms_req, zms_wen, zms_sel[3:0], zms_adr[31:0], zms_dat[31:0]}),  
+  .d_i  ({zms_ack, zsm_req,                                       zsm_dat[31:0]})
 );
 
 //////////////////////////////////////////////////////////////////////////////
