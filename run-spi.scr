@@ -1,9 +1,10 @@
 #!/bin/sh
 
-iverilog -o tmp/spi -I hdl/bench/zbus/ -I hdl/bench/spi/ hdl/rtl/spi/spi_zbus.v hdl/bench/interface/interface.v hdl/bench/spi/spi_tb.v
+iverilog -o tmp/spi.vvp -I hdl/bench/zbus/ -I hdl/bench/spi/ hdl/rtl/spi/spi_zbus.v hdl/bench/interface/interface.v hdl/bench/spi/spi_tb.v
+iverilog-vpi --name=tmp/interface.vpi src/vpi/interface.c
 rm     tmp/interface-o.fifo tmp/interface-i.fifo
 mkfifo tmp/interface-o.fifo tmp/interface-i.fifo
-strace vvp tmp/spi -lxt2
+vvp -m tmp/interface.vpi tmp/spi.vvp -lxt2
 mv test.vcd tmp/test.lx2
 
 # gtkwave -f test.lx2 -a hdl/bench/uart/uart.sav
