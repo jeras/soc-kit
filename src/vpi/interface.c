@@ -54,45 +54,35 @@ static int interface_event_calltf(char*user_data)
 {
   vpiHandle argh;
   struct t_vpi_value d_i, d_o;
-  unsigned int d_i_bw, d_o_bw;  // vector bit width
-  unsigned int d_i_Bw, d_o_Bw;  // vector Byte width
-  unsigned int d_i_ww, d_o_ww;  // vector word width
+  unsigned int d_i_size, d_o_size;  // size of vector/structure
  
   // Obtain a handle to the argument list
   vpiHandle systfref  = vpi_handle(vpiSysTfCall, NULL);
   vpiHandle args_iter = vpi_iterate(vpiArgument, systfref);
 
-  // Grab the value of the first argument
+  // grab argument d_i
   argh = vpi_scan(args_iter);
   d_i.format = vpiVectorVal;
   vpi_get_value(argh, &d_i);
-  d_i_bw = vpi_get(vpiSize, argh);
-  d_i_Bw = (d_i_bw-1)/8+1;
-  d_i_ww = (d_i_bw-1)/(8*sizeof(PLI_INT32))+1;
-  vpi_printf("VPI_DEBUG: d_i[%2i:0] = %2i'h%x\n", d_i_bw-1, d_i_bw, d_i.value.vector[0].aval);
+  // comute the size of the d_i structure
+  d_i_size = vpi_get(vpiSize, argh);
+  d_i_size = (d_i_size-1)/(8*sizeof(PLI_INT32))+1;
+  d_i_size =  d_i_size*sizeof(struct t_vpi_vecval);
   // send 'd_i'
-  d_i_Bw = d_i_ww*sizeof(struct t_vpi_vecval);
-  d_i_Bw = write (f_i, d_i.value.vector, 16);
-  vpi_printf("VPI_DEBUG: d_i_len = %i\n", d_i_Bw);
+  d_i_size = write (f_i, d_i.value.vector, d_i_size);
  
-  // Grab the value of the first argument
+  // grab argument d_o
   argh = vpi_scan(args_iter);
   d_o.format = vpiVectorVal;
   vpi_get_value(argh, &d_o);
-  d_o_bw = vpi_get(vpiSize, argh);
-  d_o_Bw = (d_o_bw-1)/8+1;
-  d_o_ww = (d_o_bw-1)/(8*sizeof(PLI_INT32))+1;
+  // compute the size of the d_o structure
+  d_o_size = vpi_get(vpiSize, argh);
+  d_o_size = (d_o_size-1)/(8*sizeof(PLI_INT32))+1;
+  d_o_size =  d_o_size*sizeof(struct t_vpi_vecval);
   // receive 'd_oi'
-  d_o_Bw = d_o_ww*sizeof(struct t_vpi_vecval);
-  d_o_Bw = read (f_o, d_o.value.vector, d_o_Bw);
-  vpi_printf("VPI_DEBUG: d_o.dat[%2i:0] = %2i'h%x\n", d_o_bw-1, d_o_bw, d_o.value.vector[0].aval);
-  vpi_printf("VPI_DEBUG: d_o.adr[%2i:0] = %2i'h%x\n", d_o_bw-1, d_o_bw, d_o.value.vector[1].aval);
-  vpi_printf("VPI_DEBUG: d_o_len = %i\n", d_o_Bw);
+  d_o_size = read (f_o, d_o.value.vector, d_o_size);
 
-  // Cleanup and return
-  vpi_free_object(args_iter);
-
-  vpi_put_value(systfref, &d_o, NULL, vpiNoDelay);
+  vpi_put_value(argh, &d_o, NULL, vpiNoDelay);
 
 //  read (f_o, &cmd, 1);
 //  if (cmd)
@@ -102,17 +92,15 @@ static int interface_event_calltf(char*user_data)
 //    vpi_sim_control(vpiFinish, 0);
 //  }
 
+  // Cleanup
+  vpi_free_object(args_iter);
+
   return 0;
 }
 
 static int interface_event_compiletf(char*user_data)
 {
   return 0;
-}
-
-static int interface_event_sizetf(char*user_data)
-{
-  return (71);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -137,12 +125,12 @@ void interface_event_register()
 {
   s_vpi_systf_data tf_data;
 
-  tf_data.type        = vpiSysFunc;
-  tf_data.sysfunctype = vpiSizedFunc;
+  tf_data.type        = vpiSysTask;
+  tf_data.sysfunctype = vpiSysTask;
   tf_data.tfname      = "$interface_event";
   tf_data.calltf      = interface_event_calltf;
   tf_data.compiletf   = interface_event_compiletf;
-  tf_data.sizetf      = interface_event_sizetf;
+  tf_data.sizetf      = NULL;
   tf_data.user_data   = NULL;
   vpi_register_systf(&tf_data);
 }
