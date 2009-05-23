@@ -25,40 +25,31 @@
 
 module interface #(
   // bus parameters
-  parameter NO  = 8,       // number of output signals
-  parameter NI  = 8,       // number of input  signals
+  parameter NO  = 8,         // number of output signals
+  parameter NI  = 8,         // number of input  signals
   // software interface parameters
-  parameter FNO = "",      // file name for output signals (read  file)
-  parameter FNI = "",      // file name for input  signals (write file)
-  parameter DT  = "hex",   // data type ("hex" (default), "bin", "raw")
-  // presentation
-  parameter NAME = "noname"
+  parameter FNO = "",        // file name for output signals (read  file)
+  parameter FNI = ""         // file name for input  signals (write file)
 )(
+  // system signals
   input  wire          clk,  // clock
-  input  wire          rst,  // clock
+  input  wire          rst,  // reset
+  // interface signals
   output reg  [NO-1:0] d_o,  // output signals
   input  wire [NI-1:0] d_i   // input  signals
 );
 
-///////////////////////////////////////////////////////////////////////////////
-// initialization                                                            //
-///////////////////////////////////////////////////////////////////////////////
+// control/command/communication signals
+integer stp;                 // simulation stop
 
 initial begin
-  $interface_init();
-  $interface_o;
-  $interface_i;
-  #7;
-  d_o = 8'h55;
-  #7;
-  d_o = d_i;
-// if (AUTO)  start (FNO, FNI);
+  stp = 0;
+  $interface_init (FNO, FNI);
 end
 
 always @ (posedge rst, posedge clk)
-if (rst)  $interface_rst;
-else      $interface_clk;
-
+if (stp)  $finish;
+else      $interface_event (rst, d_i, d_o, stp);
 
 endmodule
 

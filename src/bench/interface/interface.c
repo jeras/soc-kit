@@ -59,6 +59,8 @@ int main ()
 //  char d_i [5],  d_o [9];
   zbus_d_i d_i;
   zbus_d_o d_o;
+  int c_i, c_o;
+  unsigned int c_i_len, c_o_len;
   int  d_i_len,  d_o_len, rst_len;
 
   int  zi_dat,   zo_dat;
@@ -71,19 +73,20 @@ int main ()
   for (cnt=0; cnt<cycles; cnt++)
   {
     // read 'd_i'
+    c_i_len = 4;
+    c_i_len = read (f_i, &c_i, c_i_len);
+    rst = c_i;
     d_i_len = sizeof(zbus_d_i);
     d_i_len = read (f_i, &d_i, d_i_len);
-    rst = (d_i.ctl.aval >> 2) & 1;
     printf ("FW_DEBUG: rst = %i\n", rst);
     // write 'd_o'
     d_o.dat.aval = rst ? 0xa5 : 0x5a;
     d_o.adr.aval = 0x1234567;
     d_o_len = sizeof(zbus_d_o);
     d_o_len = write (f_o, &d_o, d_o_len);
-    
-//    if (cnt<cycles) rst = 0;
-//    else            rst = 1;
-//    write (f_o, &rst, 1);
+    if (cnt<cycles) c_o = 0;
+    else            c_o = 1;
+    write (f_o, &c_o, 4);
   }
 
   return 0;
