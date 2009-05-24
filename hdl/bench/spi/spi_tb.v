@@ -72,15 +72,11 @@ initial begin
   // request for a dumpfile
   $dumpfile("test.vcd");
   $dumpvars(0, spi_tb);
-//  zbus.start(FNO, FNI);
   clk = 1'b1;
   rst = 1'b1;
   repeat (4) @ (posedge clk);
   #1;
   rst = 1'b0;
-  repeat (12) @ (posedge clk);
-  $finish;
-  // start a zbus cycle
 end
 
 //////////////////////////////////////////////////////////////////////////////

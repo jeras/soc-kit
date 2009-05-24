@@ -213,23 +213,8 @@ int main ()
 {
   char *fno = "tmp/interface-o.fifo";
   char *fni = "tmp/interface-i.fifo";
-  unsigned int cnt, cycles = 16;
-  char rst;
-//  char d_i [5],  d_o [9];
-  zbus_d_i d_i;
-  zbus_d_o d_o;
-  int c_i, c_o;
-  unsigned int c_i_len, c_o_len;
-  int  d_i_len,  d_o_len, rst_len;
-
-  int  zi_dat,   zo_dat;
-  int            zo_adr;
-  int            zo_sel;
-  int            zo_wen;
 
   interface_init (fno, fni);
-
-#if 1
 
   interface_reset ();
   interface_rw    (0, 0x76543210, 0x32323232);
@@ -237,31 +222,6 @@ int main ()
   interface_rw    (1, 0x01234567, 0xa5a55a5a);
   interface_rw    (1, 0x89abcdef, 0x5a5aa5a5);
   interface_stop  ();
-
-#else
-
-  for (cnt=0; cnt<cycles; cnt++)
-  {
-    // read 'd_i'
-    c_i_len = sizeof(PLI_INT32);
-    c_i_len = read (f_i, &c_i, c_i_len);
-    rst = c_i;
-    d_i_len = sizeof(zbus_d_i);
-    d_i_len = read (f_i, &d_i, d_i_len);
-    printf ("FW_DEBUG: rst = %i\n", rst);
-    // write 'd_o'
-    d_o.dat.aval = rst ? 0xa5 : 0x5a;
-    d_o.dat.bval = 0x00000000;
-    d_o.adr.aval = 0x01234567;
-    d_o.adr.bval = 0x00000000;
-    d_o_len = sizeof(zbus_d_o);
-    d_o_len = write (f_o, &d_o, d_o_len);
-    if (cnt<7) c_o = 0;
-    else            c_o = 1;
-    write (f_o, &c_o, sizeof(PLI_INT32));
-  }
-
-#endif
 
   return 0;
 }
