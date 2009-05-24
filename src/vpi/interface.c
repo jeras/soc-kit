@@ -61,6 +61,8 @@ static int interface_event_calltf(char*user_data)
   vpi_get_value(argh, &c_i);
   // compute the size of the c_i structure
   c_i_size = sizeof(PLI_INT32);
+  // send c_i over pipe
+  c_i_size = write (f_i, &c_i.value.integer, c_i_size);
  
   // grab argument d_i
   argh = vpi_scan(args_iter);
@@ -70,6 +72,8 @@ static int interface_event_calltf(char*user_data)
   d_i_size = vpi_get(vpiSize, argh);
   d_i_size = (d_i_size-1)/(8*sizeof(PLI_INT32))+1;
   d_i_size =  d_i_size*sizeof(struct t_vpi_vecval);
+  // send d_i over pipe
+  d_i_size = write (f_i,  d_i.value.vector,  d_i_size);
 
   // grab argument d_o
   argh = vpi_scan(args_iter);
@@ -79,6 +83,10 @@ static int interface_event_calltf(char*user_data)
   d_o_size = vpi_get(vpiSize, argh);
   d_o_size = (d_o_size-1)/(8*sizeof(PLI_INT32))+1;
   d_o_size =  d_o_size*sizeof(struct t_vpi_vecval);
+  // receive d_i over pipe
+  d_o_size = read  (f_o,  d_o.value.vector,  d_o_size);
+  // put d_o signals
+  vpi_put_value(argh, &d_o, NULL, vpiNoDelay);
 
   // grab argument c_o
   argh = vpi_scan(args_iter);
@@ -86,14 +94,10 @@ static int interface_event_calltf(char*user_data)
   vpi_get_value(argh, &c_o);
   // compute the size of the c_o structure
   c_o_size = sizeof(PLI_INT32);
-
-  // exchange data over a pipe
-  c_i_size = write (f_i, &c_i.value.integer, c_i_size);  // send    'c_i'
-  d_i_size = write (f_i,  d_i.value.vector,  d_i_size);  // send    'd_i'
-  d_o_size = read  (f_o,  d_o.value.vector,  d_o_size);  // receive 'd_o'
-  c_o_size = read  (f_o, &c_o.value.integer, c_o_size);  // receive 'c_o'
-
-  vpi_put_value(argh, &d_o, NULL, vpiNoDelay);
+  // receive c_i over pipe
+  c_o_size = read  (f_o, &c_o.value.integer, c_o_size);
+  // put c_o signals
+  vpi_put_value(argh, &c_o, NULL, vpiNoDelay);
 
   // Cleanup
   vpi_free_object(args_iter);

@@ -69,21 +69,18 @@ always
   #5 clk <= ~clk;
 
 initial begin
+  // request for a dumpfile
+  $dumpfile("test.vcd");
+  $dumpvars(0, spi_tb);
 //  zbus.start(FNO, FNI);
   clk = 1'b1;
   rst = 1'b1;
   repeat (4) @ (posedge clk);
   #1;
   rst = 1'b0;
-  repeat (6) @ (posedge clk);
+  repeat (12) @ (posedge clk);
   $finish;
   // start a zbus cycle
-end
-
-// request for a dumpfile
-initial begin
-  $dumpfile("test.vcd");
-  $dumpvars(0, spi_tb);
 end
 
 //////////////////////////////////////////////////////////////////////////////
@@ -91,15 +88,15 @@ end
 //////////////////////////////////////////////////////////////////////////////
 
 interface #(
-  .NO   (  1+1+1+SW+AW+DW),  //   1+1+1+4+32+32 = 71 bit = 9 Byte
-  .NI   (1+1+1+        DW),  // 1+1+1+       32 = 35 bit = 5 Byte
+  .NO   (1+1+1+SW+AW+DW),  // 1+1+1+4+32+32 = 71 bit = 9 Byte
+  .NI   (1+1+        DW),  // 1+1+       32 = 34 bit = 5 Byte
   .FNO  (FNO),
   .FNI  (FNI)
 ) zbus (
   .clk  (clk),
   .rst  (rst),
-  .d_o  ({     zsm_ack, zms_req, zms_wen, zms_sel[SW-1:0], zms_adr[AW-1:0], zms_dat[DW-1:0]}),  
-  .d_i  ({rst, zms_ack, zsm_req,                                            zsm_dat[DW-1:0]})
+  .d_o  ({zsm_ack, zms_req, zms_wen, zms_sel[SW-1:0], zms_adr[AW-1:0], zms_dat[DW-1:0]}),  
+  .d_i  ({zms_ack, zsm_req,                                            zsm_dat[DW-1:0]})
 );
 
 //////////////////////////////////////////////////////////////////////////////
