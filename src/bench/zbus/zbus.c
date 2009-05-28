@@ -1,63 +1,183 @@
+#include "interface.h"
+#include "zbus.h"
+
+#include <vpi_user.h>
+
 #include <fcntl.h>
 #include <unistd.h>
 
 #include <stdio.h>
-#include <string.h>
 
-int main ()
+//unsigned int ioread8(void *addr);
+//unsigned int ioread16(void *addr);
+uint32_t ioread32(void *addr)
 {
-  unsigned int i;
-  int  zi,           zo;
-  int  zi_status,    zo_status;
-  char zi_str [128], zo_str [128];
-  int  zi_len,       zo_len;
-  char zi_inst [3],  zo_inst [3];
-  int  zi_dat,       zo_dat;
-  int                zo_adr;
-  int                zo_sel;
-  int                zo_wen;
+  return zbus_rw(0, addr, 0);
+}
 
-  // open ZO stream
-  zo = open ("tmp/zo_file.txt", O_WRONLY);
-  if (zo<0)
-    printf ("ERROR: Error opening ZO file.\n");
-  else
-    printf ("DEBUG: Success opening ZO file.\n");
+//void iowrite8(u8 value, void *addr);
+//void iowrite16(u16 value, void *addr);
+void iowrite32(uint32_t value, void *addr)
+{
+  zbus_rw(1, addr, value);
+}
 
-  // open ZI stream
-  zi = open ("tmp/zi_file.txt", O_RDONLY);
-  if (zi<0)
-    printf ("ERROR: Error opening ZI file.\n");
-  else
-    printf ("DEBUG: Success opening ZI file.\n");
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
 
-  for (i=0; i<8; i++)
+int zbus_reset ()
+{
+  int      c_i;
+  zbus_d_i d_i;
+  zbus_d_o d_o;
+  int      c_o;
+  unsigned int c_i_len, c_o_len;
+  unsigned int d_i_len, d_o_len;
+  unsigned int rst, stp;
+
+  // read 'd_i'
+  c_i_len = sizeof(PLI_INT32);
+  c_i_len = read (f_i, &c_i, c_i_len);
+  d_i_len = sizeof(zbus_d_i);
+  d_i_len = read (f_i, &d_i, d_i_len);
+  rst = c_i;
+
+  d_o.dat.aval = 0xffffffff;
+  d_o.dat.bval = 0xffffffff;
+  d_o.adr.aval = 0xffffffff;
+  d_o.adr.bval = 0xfffffff0;
+  d_o.ctl.aval = 0x0000001f;
+  d_o.ctl.bval = 0x0000001f;
+
+  stp = 0;
+  c_o = stp;
+
+  while (rst)
   {
-    // read string
-    zi_len = read (zi, zi_str, 128);
-    zi_str[zi_len] = '\0';
-    printf ("ZI: len = %3i, str = \"%s\"\n", zi_len, zi_str);
-    // write string
-    zo_len = 4;
-    strcpy (zo_str, "idl\n");
-    zo_str[zo_len] = '\0';
-    printf ("ZO: len = %3i, str = \"%s\"\n", zo_len, zo_str);
-    zo_len = write (zo, zo_str, zo_len);
-    printf ("ZO: len = %3i, str = \"%s\"\n", zo_len, zo_str);
+    // write 'd_o'
+    d_o_len = sizeof(zbus_d_o);
+    d_o_len = write (f_o, &d_o, d_o_len);
+    c_o_len = sizeof(PLI_INT32);
+    c_o_len = write (f_o, &c_o, c_o_len);
+    // read 'd_i'
+    c_i_len = sizeof(PLI_INT32);
+    c_i_len = read (f_i, &c_i, c_i_len);
+    d_i_len = sizeof(zbus_d_i);
+    d_i_len = read (f_i, &d_i, d_i_len);
+    rst = c_i;
   }
 
-  // write string
-  zo_len = 4;
-  strcpy (zo_str, "fin\n");
-  zo_str[zo_len] = '\0';
-  printf ("ZO: len = %3i, str = \"%s\"\n", zo_len, zo_str);
-  zo_len = write (zo, zo_str, zo_len);
-  printf ("ZO: len = %3i, str = \"%s\"\n", zo_len, zo_str);
+  return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+
+int zbus_rw (unsigned int wen, int adr, int dat)
+{
+  int      c_i;
+  zbus_d_i d_i;
+  zbus_d_o d_o;
+  int      c_o;
+  unsigned int c_i_len, c_o_len;
+  unsigned int d_i_len, d_o_len;
+  unsigned int rst, stp;
+  unsigned int ack, req;
+
+  d_o.dat.aval = dat;
+  d_o.dat.bval = 0x00000000;
+  d_o.adr.aval = adr;
+  d_o.adr.bval = 0x00000000;
+  d_o.ctl.aval = 0x0000006f + (wen << 4);
+  d_o.ctl.bval = 0x00000000;
+
+  stp = 0;
+  c_o = stp;
+
+  ack = 0;
+
+  while (!ack)
+  {
+    // write 'd_o'
+    d_o_len = sizeof(zbus_d_o);
+    d_o_len = write (f_o, &d_o, d_o_len);
+    c_o_len = sizeof(PLI_INT32);
+    c_o_len = write (f_o, &c_o, c_o_len);
+    // read 'd_i'
+    c_i_len = sizeof(PLI_INT32);
+    c_i_len = read (f_i, &c_i, c_i_len);
+    d_i_len = sizeof(zbus_d_i);
+    d_i_len = read (f_i, &d_i, d_i_len);
+    rst = c_i;
+    ack = d_i.ctl.aval & 0x2;
+  }
+
+  if (!wen)
+  {
+    req = d_i.ctl.aval & 0x1;
+  
+    d_o.dat.aval = 0xffffffff;
+    d_o.dat.bval = 0xffffffff;
+    d_o.adr.aval = 0xffffffff;
+    d_o.adr.bval = 0xffffffff;
+    d_o.ctl.aval = 0x0000001f;
+    d_o.ctl.bval = 0x0000001f;
+  
+    while (!req) {
+      // write 'd_o'
+      d_o_len = sizeof(zbus_d_o);
+      d_o_len = write (f_o, &d_o, d_o_len);
+      c_o_len = sizeof(PLI_INT32);
+      c_o_len = write (f_o, &c_o, c_o_len);
+      // read 'd_i'
+      c_i_len = sizeof(PLI_INT32);
+      c_i_len = read (f_i, &c_i, c_i_len);
+      d_i_len = sizeof(zbus_d_i);
+      d_i_len = read (f_i, &d_i, d_i_len);
+      rst = c_i;
+      req = d_i.ctl.aval & 0x1;
+    }
+  }
+
+  dat = d_i.dat.aval;
+
+  return dat;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+
+int zbus_stop ()
+{
+  int      c_i;
+  zbus_d_i d_i;
+  zbus_d_o d_o;
+  int      c_o;
+  unsigned int c_i_len, c_o_len;
+  unsigned int d_i_len, d_o_len;
+  unsigned int rst, stp;
+
+  d_o.dat.aval = 0xffffffff;
+  d_o.dat.bval = 0xffffffff;
+  d_o.adr.aval = 0xffffffff;
+  d_o.adr.bval = 0xffffffff;
+  d_o.ctl.aval = 0x0000001f;
+  d_o.ctl.bval = 0x0000001f;
+
+  stp = 1;
+  c_o = stp;
+
+  // write 'd_o'
+  d_o_len = sizeof(zbus_d_o);
+  d_o_len = write (f_o, &d_o, d_o_len);
+  c_o_len = sizeof(PLI_INT32);
+  c_o_len = write (f_o, &c_o, c_o_len);
 
   return 0;
-}   
-//    zi_status = fscanf (zi, "%s", zi_inst);
-//    if (zi_status<0) printf ("ERROR: ZI scanf return status: %i", zi_status);
-//    if (strcmp(zi_inst, "req"))
-//      zi_status = fscanf (zi, " %s", zi_inst);
+}
+
+
 
