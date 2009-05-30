@@ -22,25 +22,42 @@ void iowrite32(uint32_t value, void *addr)
   zbus_rw(1, addr, value);
 }
 
+int interface_exchange (void *d__o, unsigned int d__o_len,
+                        void *c__o, unsigned int c__o_len,
+                        void *c__i, unsigned int c__i_len,
+                        void *d__i, unsigned int d__i_len)
+{
+  int error = 0;
+  // send    data to   Verilog VPI
+  if (d__o_len != write (f_o, d__o, d__o_len))  error++;
+  if (c__o_len != write (f_o, c__o, c__o_len))  error++;
+  // receive data from Verilog VPI
+  if (c__i_len != read  (f_i, c__i, c__i_len))  error++;
+  if (d__i_len != read  (f_i, d__i, d__i_len))  error++;
+  // return en error
+  return (error);
+}
+
+// shared global structures
+int      c_i;
+zbus_d_i d_i;
+zbus_d_o d_o;
+int      c_o;
+// constant structure sizes
+const unsigned int d_o_len = sizeof(zbus_d_o);
+const unsigned int c_o_len = sizeof(PLI_INT32);
+const unsigned int c_i_len = sizeof(PLI_INT32);
+const unsigned int d_i_len = sizeof(zbus_d_i);
+
 //////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////
 
 int zbus_reset ()
 {
-  int      c_i;
-  zbus_d_i d_i;
-  zbus_d_o d_o;
-  int      c_o;
-  unsigned int c_i_len, c_o_len;
-  unsigned int d_i_len, d_o_len;
   unsigned int rst, stp;
 
-  // read 'd_i'
-  c_i_len = sizeof(PLI_INT32);
-  c_i_len = read (f_i, &c_i, c_i_len);
-  d_i_len = sizeof(zbus_d_i);
-  d_i_len = read (f_i, &d_i, d_i_len);
+  interface_exchange (&d_o, 0, &c_o, 0, &c_i, c_i_len, &d_i, d_i_len);
   rst = c_i;
 
   d_o.dat.aval = 0xffffffff;
@@ -55,16 +72,7 @@ int zbus_reset ()
 
   while (rst)
   {
-    // write 'd_o'
-    d_o_len = sizeof(zbus_d_o);
-    d_o_len = write (f_o, &d_o, d_o_len);
-    c_o_len = sizeof(PLI_INT32);
-    c_o_len = write (f_o, &c_o, c_o_len);
-    // read 'd_i'
-    c_i_len = sizeof(PLI_INT32);
-    c_i_len = read (f_i, &c_i, c_i_len);
-    d_i_len = sizeof(zbus_d_i);
-    d_i_len = read (f_i, &d_i, d_i_len);
+    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
     rst = c_i;
   }
 
@@ -77,12 +85,6 @@ int zbus_reset ()
 
 int zbus_rw (unsigned int wen, int adr, int dat)
 {
-  int      c_i;
-  zbus_d_i d_i;
-  zbus_d_o d_o;
-  int      c_o;
-  unsigned int c_i_len, c_o_len;
-  unsigned int d_i_len, d_o_len;
   unsigned int rst, stp;
   unsigned int ack, req;
 
@@ -100,16 +102,7 @@ int zbus_rw (unsigned int wen, int adr, int dat)
 
   while (!ack)
   {
-    // write 'd_o'
-    d_o_len = sizeof(zbus_d_o);
-    d_o_len = write (f_o, &d_o, d_o_len);
-    c_o_len = sizeof(PLI_INT32);
-    c_o_len = write (f_o, &c_o, c_o_len);
-    // read 'd_i'
-    c_i_len = sizeof(PLI_INT32);
-    c_i_len = read (f_i, &c_i, c_i_len);
-    d_i_len = sizeof(zbus_d_i);
-    d_i_len = read (f_i, &d_i, d_i_len);
+    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
     rst = c_i;
     ack = d_i.ctl.aval & 0x2;
   }
@@ -126,16 +119,7 @@ int zbus_rw (unsigned int wen, int adr, int dat)
     d_o.ctl.bval = 0x0000001f;
   
     while (!req) {
-      // write 'd_o'
-      d_o_len = sizeof(zbus_d_o);
-      d_o_len = write (f_o, &d_o, d_o_len);
-      c_o_len = sizeof(PLI_INT32);
-      c_o_len = write (f_o, &c_o, c_o_len);
-      // read 'd_i'
-      c_i_len = sizeof(PLI_INT32);
-      c_i_len = read (f_i, &c_i, c_i_len);
-      d_i_len = sizeof(zbus_d_i);
-      d_i_len = read (f_i, &d_i, d_i_len);
+      interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
       rst = c_i;
       req = d_i.ctl.aval & 0x1;
     }
@@ -152,12 +136,6 @@ int zbus_rw (unsigned int wen, int adr, int dat)
 
 void zbus_idle (unsigned int cycles)
 {
-  int      c_i;
-  zbus_d_i d_i;
-  zbus_d_o d_o;
-  int      c_o;
-  unsigned int c_i_len, c_o_len;
-  unsigned int d_i_len, d_o_len;
   unsigned int rst, stp;
   unsigned int n;
 
@@ -173,16 +151,7 @@ void zbus_idle (unsigned int cycles)
 
   for (n = 0; n < cycles; n++)
   {
-    // write 'd_o'
-    d_o_len = sizeof(zbus_d_o);
-    d_o_len = write (f_o, &d_o, d_o_len);
-    c_o_len = sizeof(PLI_INT32);
-    c_o_len = write (f_o, &c_o, c_o_len);
-    // read 'd_i'
-    c_i_len = sizeof(PLI_INT32);
-    c_i_len = read (f_i, &c_i, c_i_len);
-    d_i_len = sizeof(zbus_d_i);
-    d_i_len = read (f_i, &d_i, d_i_len);
+    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
     rst = c_i;
   }
 }
@@ -193,12 +162,6 @@ void zbus_idle (unsigned int cycles)
 
 int zbus_stop ()
 {
-  int      c_i;
-  zbus_d_i d_i;
-  zbus_d_o d_o;
-  int      c_o;
-  unsigned int c_i_len, c_o_len;
-  unsigned int d_i_len, d_o_len;
   unsigned int rst, stp;
 
   d_o.dat.aval = 0xffffffff;
@@ -210,12 +173,7 @@ int zbus_stop ()
 
   stp = 1;
   c_o = stp;
-
-  // write 'd_o'
-  d_o_len = sizeof(zbus_d_o);
-  d_o_len = write (f_o, &d_o, d_o_len);
-  c_o_len = sizeof(PLI_INT32);
-  c_o_len = write (f_o, &c_o, c_o_len);
+  interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, 0, &d_i, 0);
 
   return 0;
 }
