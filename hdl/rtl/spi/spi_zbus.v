@@ -21,9 +21,9 @@
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-/*\
- *  this file contains the system bus interface and static registers
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// this file contains the system bus interface and static registers         //
+//////////////////////////////////////////////////////////////////////////////
 
 module spi_zbus #(
   // system bus parameters
@@ -33,10 +33,12 @@ module spi_zbus #(
   // SPI slave select paramaters
   parameter SSW = 8,          // slave select register width
   // SPI interface configuration parameters
+  parameter CFG_bit   =  0,  // select bit mode instead of byte mode by default
+  parameter CFG_3wr   =  0,  // duplex type (0 - SPI full duplex, 1 - 3WIRE half duplex (MOSI is shared))
+  parameter CFG_oen   =  0,  // MOSI output enable after reset
   parameter CFG_dir   =  1,  // shift direction (0 - LSB first, 1 - MSB first)
   parameter CFG_cpol  =  0,  // clock polarity
   parameter CFG_cpha  =  0,  // clock phase
-  parameter CFG_3wr   =  0,  // duplex type (0 - SPI full duplex, 1 - 3WIRE half duplex (MOSI is shared))
   // SPI shift register parameters
   parameter PAR_sh_rw = 32,  // shift register width (default width is eqal to wishbone bus width)
   parameter PAR_sh_cw =  5,  // shift counter width (logarithm of shift register width)
@@ -49,7 +51,7 @@ module spi_zbus #(
   parameter PAR_cd_en =  1,  // clock divider enable (0 - use full system clock, 1 - use divider)
   parameter PAR_cd_ri =  1,  // clock divider register inplement (otherwise the default clock division factor is used)
   parameter PAR_cd_rw =  8,  // clock divider register width
-  parameter PAR_cd_ft =  1   // default clock division factor
+  parameter PAR_cd_ft =  0   // default clock division factor
 )(
   // system signals (used by the CPU bus interface)
   input  wire           clk,
@@ -69,7 +71,8 @@ module spi_zbus #(
   output wire           irq,
   // SPI signals
   output wire [SSW-1:0] spi_ss_n,   // active low slave select signal
-  output wire           spi_sclk,   // serial clock
+  input  wire           spi_sclk_i, // serial clock loopback input
+  output wire           spi_sclk_o, // serial clock output
   input  wire           spi_miso,   // serial master input slave output
   output wire           spi_mosi_i, // serial master output slave input or threewire bidirectional (input)
   inout  wire           spi_mosi_o, // serial master output slave input or threewire bidirectional (output)
@@ -86,28 +89,29 @@ module spi_zbus #(
 \*/
 
 // clock divider signals
-reg  [PAR_cd_rw-1:0] cnt_clk;  // clock divider counter
+reg  [PAR_cd_rw-1:0] div_cnt;  // clock divider counter
 reg  [PAR_cd_rw-1:0] reg_div;  // register holding the requested clock division ratio
-reg  reg_clk;                  // register storing the SCLK clock value (additional division by two)
-wire reg_clk_posedge, reg_clk_negedge;
+wire div_byp;
+reg  div_clk;                  // register storing the SCLK clock value (additional division by two)
 
 // spi shifter signals
 reg  [PAR_sh_rw-1:0] reg_s;    // spi data shift register
 reg  reg_i, reg_o;             // spi input-sampling to output-change phase shift registers
 wire ser_i, ser_o;             // shifter serial input and output multiplexed signals
+wire spi_mi;                   //
+wire clk_l;                    // loopback clock
 
 // spi slave select signals
 reg  [SSW-1:0] reg_ss;   // active high slave select register
 
 // spi configuration registers (shift direction, clock polarity and phase, 3 wire option)
-reg  cfg_dir, cfg_cpol, cfg_cpha, cfg_3wr;
+reg  cfg_bit, cfg_3wr, cfg_oen, cfg_dir, cfg_cpol, cfg_cpha;
 
 // spi shift transfer control registers
 reg  [PAR_sh_cw-1:0] cnt_bit;  // counter of shifted bits
 reg  [PAR_tu_cw-1:0] ctl_cnt;  // counter of transfered data units (bytes by defoult)
 wire ctl_run;                  // transfer running status
 
-reg  ctl_oe;                   // output enable for the mosi signal
 
 /*\
  *  generalized bus signals
@@ -137,7 +141,6 @@ wire [DW-1:0] zi_dat_dat, zo_dat_dat;
 assign zi_trn = zi_req & zi_ack;
 
 // bus address and select
-assign bus_adr = zi_adr [2:0];
 assign bus_sel = zi_sel;
 
 // request acknowledge
@@ -209,9 +212,9 @@ assign zo_dat = (zi_adr[2:0] == 3) ?  zo_dat_div :
 end
 endgenerate
 
-/*\
- *  clock divider 
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// clock divider                                                            //
+//////////////////////////////////////////////////////////////////////////////
 
 // clock division factor number register
 always @(posedge clk, posedge rst)
@@ -223,35 +226,32 @@ else if (zi_trn & zi_wen & zi_sel_div)
 // bus read value of the clock divider factor register
 assign zo_dat_div = reg_div;
 
+// divider bypass bit
+assign div_byp = reg_div[7];
+
 // clock counter
 always @(posedge clk, posedge rst)
 if (rst)
-  cnt_clk <= 'b0;
-else if (ctl_run) begin
-  if (cnt_clk == 'd0)
-    cnt_clk <= reg_div;
-  else
-    cnt_clk <= cnt_clk - 1;
+  div_cnt <= 'b0;
+else begin
+  if (~ctl_run | ~|div_cnt)
+    div_cnt <= reg_div;
+  else if (ctl_run)
+    div_cnt <= div_cnt - 1;
 end
 
 // clock output register (divider by 2)
 always @(posedge clk)
 if (~ctl_run)
-  reg_clk <= cfg_cpol;
-else if (cnt_clk == 0)
-  reg_clk <= ~reg_clk;
+  div_clk <= cfg_cpol;
+else if (~|div_cnt)
+  div_clk <= ~div_clk;
 
-// spi clock positive and negative edge
-// used to synchronise input, output and shift registers
-assign reg_clk_posedge = (cnt_clk == 0) & ~reg_clk;
-assign reg_clk_negedge = (cnt_clk == 0) &  reg_clk;
+assign div_ena = div_byp ? 1 : ~|div_cnt & (div_clk ^ cfg_cpol);
 
-// spi clock output pin
-assign spi_sclk = reg_clk;
-
-/*\
- *  spi slave select
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// spi slave select                                                         //
+//////////////////////////////////////////////////////////////////////////////
 
 always @(posedge clk, posedge rst)
 if (rst)
@@ -265,35 +265,39 @@ assign zo_dat_ss = reg_ss;
 // slave select active low output pins
 assign spi_ss_n = ~reg_ss;
 
-/*\
- *  configuration registers
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// configuration registers                                                  //
+//////////////////////////////////////////////////////////////////////////////
 
 always @(posedge clk, posedge rst)
 if (rst) begin
+  cfg_bit  <= CFG_bit;
+  cfg_3wr  <= CFG_3wr;
+  cfg_oen  <= CFG_3wr;
   cfg_dir  <= CFG_dir;
   cfg_cpol <= CFG_cpol;
   cfg_cpha <= CFG_cpha;
-  cfg_3wr  <= CFG_3wr;
 end else if (zi_trn & zi_wen & zi_sel_cfg) begin
-  cfg_dir  <= zi_dat_cfg [3   ];
-  cfg_cpol <= zi_dat_cfg [ 2  ];
-  cfg_cpha <= zi_dat_cfg [  1 ];
-  cfg_3wr  <= zi_dat_cfg [   0];
+  cfg_bit  <= zi_dat_cfg [5     ];
+  cfg_3wr  <= zi_dat_cfg [ 4    ];
+  cfg_oen  <= zi_dat_cfg [  3   ];
+  cfg_dir  <= zi_dat_cfg [   2  ];
+  cfg_cpol <= zi_dat_cfg [    1 ];
+  cfg_cpha <= zi_dat_cfg [     0];
 end
 
 // bus read value of the configuration register
-assign zo_dat_cfg = {4'b0, cfg_dir, cfg_cpol, cfg_cpha, cfg_3wr};
+assign zo_dat_cfg = {2'b00, cfg_bit, cfg_3wr, cfg_oen, cfg_dir, cfg_cpol, cfg_cpha};
 
-/*\
- *  control registers (transfer counter and serial output enable)
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// control registers (transfer counter and serial output enable)            //
+//////////////////////////////////////////////////////////////////////////////
 
 // bit counter
 always @(posedge clk, posedge rst)
 if (rst)
   cnt_bit <= 0;
-else if (ctl_cnt != 0)
+else if (ctl_run & div_ena)
   cnt_bit <= cnt_bit + 1;
 
 // transfer control counter
@@ -305,32 +309,25 @@ else begin
   if (zi_trn & zi_wen & zi_sel_ctl)
     ctl_cnt <= zi_dat_ctl [PAR_tc_rw-1:0];
   // decrement at the end of each transfer unit (byte by default)
-  else if ( (&(cnt_bit [PAR_tu_cw-1:0])) )
+  else if (&cnt_bit [PAR_tu_cw-1:0] & div_ena)
     ctl_cnt <= ctl_cnt - 1;
 end
 
 // spi transfer run status
-assign ctl_run = (ctl_cnt != 0);
-
-// output enable control register
-always @(posedge clk, posedge rst)
-if (rst)
-  ctl_oe <= 0;
-else if (zi_trn & zi_wen & zi_sel_ctl)
-  ctl_oe <= zi_dat_ctl [7];
+assign ctl_run = |ctl_cnt;
 
 // bus read value of the control register (output enable, transfer counter)
-assign zo_dat_ctl = {ctl_oe, {8-1-PAR_tu_cw{1'b0}}, ctl_cnt};
+assign zo_dat_ctl = {{8-1-PAR_tu_cw{1'b0}}, ctl_cnt};
 
-/*\
- *  spi shift register
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// spi shift register                                                       //
+//////////////////////////////////////////////////////////////////////////////
 
 // shift register implementation
 always @(posedge clk)
 if (zi_trn & zi_wen & zi_sel_dat) begin
   reg_s <= zi_dat_dat;  // TODO
-end else if (ctl_run) begin
+end else if (ctl_run & div_ena) begin
   if (cfg_dir)  reg_s <= {reg_s [PAR_sh_rw-2:0], ser_i};
   else          reg_s <= {ser_i, reg_s [PAR_sh_rw-1:1]};
 end
@@ -338,25 +335,27 @@ end
 // bus read value of the data ragister
 assign zo_dat_dat = reg_s;
 
-/*\
- *  serial interface
-\*/
-
-// output register
-always @(posedge clk)
-if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
-  reg_o <= ser_o;
-
-// input register
-always @(posedge clk)
-if ( ((cfg_cpol == 0) & reg_clk_negedge) | ((cfg_cpol == 1) & reg_clk_posedge) )
-  reg_i <= ser_i;
-
 // the serial output from the shift register depends on the direction of shifting
 assign ser_o      = (cfg_dir) ? reg_s [PAR_sh_rw-1] : reg_s [0];
-assign ser_i      = (cfg_cpha == 0) ? reg_i : (cfg_3wr == 0) ? spi_miso : spi_mosi_i;
-assign spi_mosi_o = (cfg_cpha == 0) ? ser_o : reg_o;
-assign spi_mosi_e = ctl_oe;
+
+always @(posedge clk_l)
+if ( cfg_cpha)  reg_o <= ser_o;
+
+always @(posedge clk_l)
+if (~cfg_cpha)  reg_i <= spi_mi;
+
+// spi clock output pin
+assign spi_sclk_o = div_byp ? cfg_cpol ^ (ctl_run & ~clk) : div_clk;
+
+// loop clock
+assign clk_l      = spi_sclk_i ^ cfg_cpol;
+
+// the serial input depends on the used protocol (SPI, 3 wire)
+assign spi_mi     = cfg_3wr ? spi_mosi_i : spi_miso;
+
+assign ser_i      = ~cfg_cpha ? reg_i : spi_mi;
+assign spi_mosi_o = ~cfg_cpha ? ser_o : reg_o;
+assign spi_mosi_e = cfg_oen;
 
 
 endmodule

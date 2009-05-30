@@ -121,7 +121,7 @@ spi_zbus #(
   .PAR_cd_en  ( 1),  // clock divider enable (0 - use full system clock, 1 - use divider)
   .PAR_cd_ri  ( 1),  // clock divider register inplement (otherwise the default clock division factor is used)
   .PAR_cd_rw  ( 8),  // clock divider register width
-  .PAR_cd_ft  ( 1)   // default clock division factor
+  .PAR_cd_ft  ( 0)   // default clock division factor
 ) spi_zbus (
   // system signals (used by the CPU bus interface)
   .clk       (clk),
@@ -141,7 +141,8 @@ spi_zbus #(
   .irq       (),
   // SPI signals
   .spi_ss_n   (ss_n),   // active low slave select signal
-  .spi_sclk   (sclk),   // serial clock
+  .spi_sclk_i (sclk),   // serial clock
+  .spi_sclk_o (sclk),   // serial clock
   .spi_miso   (miso),   // serial master input slave output
   .spi_mosi_i (mosi_i), // serial master output slave input or threewire bidirectional (input)
   .spi_mosi_o (mosi_o), // serial master output slave input or threewire bidirectional (output)
@@ -155,6 +156,36 @@ spi_zbus #(
 assign mosi_i = mosi;
 assign mosi   = mosi_e ? mosi_o : 1'bz;
 
+//////////////////////////////////////////////////////////////////////////////
+// SPI slave (serial Flash)                                                 //
+//////////////////////////////////////////////////////////////////////////////
 
+// loopback for debug purposes
+assign miso = ~ss_n[0] ? mosi : 1'bz;
+
+// Spansion serial Flash
+// s25fl032a #(
+//   .mem_file_name ("none")
+// ) Flash (
+//   .SCK     (sclk),
+//   .SI      (mosi),
+//   .CSNeg   (ss_n[0]),
+//   .HOLDNeg (1'b1),
+//   .WNeg    (1'b1),
+//   .SO      (miso)
+// );
+
+// Numonyx serial Flash
+m25p80 
+Flash (
+  .c         (sclk),
+  .data_in   (mosi),
+  .s         (ss_n[1]),
+  .w         (1'b1),
+  .hold      (1'b1),
+  .data_out  (miso)
+);
+
+defparam Flash.mem_access.initfile = "hdl/bench/numonyx/initM25P80.txt";
 
 endmodule

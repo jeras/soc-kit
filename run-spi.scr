@@ -2,7 +2,8 @@
 
 rm tmp/*
 gcc -o tmp/interface -I /usr/include/iverilog/ -I src/bench/interface/ -I src/bench/zbus/ src/bench/interface/interface.c src/bench/zbus/zbus.c src/bench/spi/spi.c
-iverilog -o tmp/spi.vvp -I hdl/bench/zbus/ -I hdl/bench/spi/ hdl/rtl/spi/spi_zbus.v hdl/bench/interface/interface.v hdl/bench/spi/spi_tb.v
+#iverilog -o tmp/spi.vvp -I hdl/bench/zbus/ -I hdl/bench/spi/ hdl/rtl/spi/spi_zbus.v hdl/bench/interface/interface.v hdl/bench/spi/spi_tb.v hdl/bench/spi/s25fl032a.v
+iverilog -o tmp/spi.vvp -I hdl/bench/zbus/ -I hdl/bench/spi/ -I hdl/bench/numonyx/ hdl/rtl/spi/spi_zbus.v hdl/bench/interface/interface.v hdl/bench/spi/spi_tb.v hdl/bench/numonyx/*.v
 iverilog-vpi --name=tmp/interface src/vpi/interface.c
 mkfifo tmp/interface-o.fifo tmp/interface-i.fifo
 vvp -m tmp/interface.vpi tmp/spi.vvp -lxt2 &

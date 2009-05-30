@@ -327,7 +327,8 @@ module s25fl032a
     initial
     begin
         PoweredUp = 1'b0;
-        #tdevice_PU PoweredUp = 1'b1;
+        # (tdevice_PU);
+        PoweredUp = 1'b1;
     end
 
    always @(posedge DP_in)

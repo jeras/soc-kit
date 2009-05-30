@@ -1,4 +1,5 @@
 #include "zbus.h"
+#include "spi.h"
 
 int main ()
 {
@@ -14,12 +15,36 @@ int main ()
 
   ioread32 (base+0x0);
   ioread32 (base+0x4);
-  ioread32 (base+0x8);
-  ioread32 (base+0xc);
-  iowrite32(0x01234567, base+0x0);
+
+  zbus_idle (4);
+
+  // write output fata
   iowrite32(0x89abcdef, base+0x4);
-  iowrite32(0xa5a5a5a5, base+0x8);
-  iowrite32(0x5a5a5a5a, base+0xc);
+  
+  iowrite32((0x00 << 24) + // set the clock divider
+            (0x00 << 16) + // select only slave 0
+            (3 << SPI_MODE_POS) +
+            (0x00 <<  0),  // 
+            base+0x0);
+
+  zbus_idle (1);
+
+  iowrite32((0x00 << 24) + // set the clock divider
+            (0x01 << 16) + // select only slave 0
+            SPI_OEN_MSK  +
+            SPI_DIR_MSK  +
+            (3 << SPI_MODE_POS) +
+            (0x81 <<  0),  // 
+            base+0x0);
+
+//  iowrite32((0x00 << 24) + // set the clock divider
+//            (0x00 << 16) + // select only slave 0
+//            SPI_DIR_MSK  +
+//            (2 << SPI_MODE_POS) +
+//            (0x00 <<  0),  // 
+//            base+0x0);
+
+  zbus_idle (100);
 
   zbus_stop ();
 
