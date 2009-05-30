@@ -22,6 +22,7 @@ typedef struct {
   uint32_t ack:1;
 } zbus_d_o_ctl;
 
+void zbus_idle (unsigned int);
 int zbus_reset ();
 int zbus_stop ();
 

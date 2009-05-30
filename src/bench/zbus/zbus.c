@@ -150,6 +150,47 @@ int zbus_rw (unsigned int wen, int adr, int dat)
 //
 //////////////////////////////////////////////////////////////////////////////
 
+void zbus_idle (unsigned int cycles)
+{
+  int      c_i;
+  zbus_d_i d_i;
+  zbus_d_o d_o;
+  int      c_o;
+  unsigned int c_i_len, c_o_len;
+  unsigned int d_i_len, d_o_len;
+  unsigned int rst, stp;
+  unsigned int n;
+
+  d_o.dat.aval = 0xffffffff;
+  d_o.dat.bval = 0xffffffff;
+  d_o.adr.aval = 0xffffffff;
+  d_o.adr.bval = 0xffffffff;
+  d_o.ctl.aval = 0x0000001f;
+  d_o.ctl.bval = 0x0000001f;
+
+  stp = 0;
+  c_o = stp;
+
+  for (n = 0; n < cycles; n++)
+  {
+    // write 'd_o'
+    d_o_len = sizeof(zbus_d_o);
+    d_o_len = write (f_o, &d_o, d_o_len);
+    c_o_len = sizeof(PLI_INT32);
+    c_o_len = write (f_o, &c_o, c_o_len);
+    // read 'd_i'
+    c_i_len = sizeof(PLI_INT32);
+    c_i_len = read (f_i, &c_i, c_i_len);
+    d_i_len = sizeof(zbus_d_i);
+    d_i_len = read (f_i, &d_i, d_i_len);
+    rst = c_i;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+
 int zbus_stop ()
 {
   int      c_i;
