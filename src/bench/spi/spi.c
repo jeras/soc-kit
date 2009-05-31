@@ -1,6 +1,8 @@
 #include "zbus.h"
 #include "spi.h"
 
+
+
 int main ()
 {
   char *fno = "tmp/interface-o.fifo";
@@ -21,7 +23,7 @@ int main ()
   // write output fata
   iowrite32(0x89abcdef, base+0x4);
   
-  iowrite32((0x00 << 24) + // set the clock divider
+  iowrite32((0x01 << 24) + // set the clock divider
             (0x00 << 16) + // select only slave 0
             (3 << SPI_MODE_POS) +
             (0x00 <<  0),  // 
@@ -29,7 +31,7 @@ int main ()
 
   zbus_idle (1);
 
-  iowrite32((0x00 << 24) + // set the clock divider
+  iowrite32((0x01 << 24) + // set the clock divider
             (0x01 << 16) + // select only slave 0
             SPI_OEN_MSK  +
             SPI_DIR_MSK  +

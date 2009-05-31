@@ -8,46 +8,40 @@
 
 #include <stdio.h>
 
-//unsigned int ioread8(void *addr);
+uint8_t ioread8(void *addr)
+{
+  int shift = (uint32_t) addr & 0x3;
+  return (zbus_rw(0, addr, 0x1 << shift, 0) >> (8*shift));
+}
 //unsigned int ioread16(void *addr);
 uint32_t ioread32(void *addr)
 {
-  return zbus_rw(0, addr, 0);
+  return zbus_rw(0, addr, 0xf, 0);
 }
 
 //void iowrite8(u8 value, void *addr);
 //void iowrite16(u16 value, void *addr);
 void iowrite32(uint32_t value, void *addr)
 {
-  zbus_rw(1, addr, value);
+  zbus_rw(1, addr, 0xf, value);
 }
 
-int interface_exchange (void *d__o, unsigned int d__o_len,
-                        void *c__o, unsigned int c__o_len,
-                        void *c__i, unsigned int c__i_len,
-                        void *d__i, unsigned int d__i_len)
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+
+int zbus_exchange (int send_en, int receive_en)
 {
-  int error = 0;
-  // send    data to   Verilog VPI
-  if (d__o_len != write (f_o, d__o, d__o_len))  error++;
-  if (c__o_len != write (f_o, c__o, c__o_len))  error++;
-  // receive data from Verilog VPI
-  if (c__i_len != read  (f_i, c__i, c__i_len))  error++;
-  if (d__i_len != read  (f_i, d__i, d__i_len))  error++;
-  // return en error
-  return (error);
+  if (
+    interface_exchange (
+      &cd_io.d_o, send_en    ? sizeof(zbus_d_o)  : 0,
+      &cd_io.c_o, send_en    ? sizeof(PLI_INT32) : 0,
+      &cd_io.c_i, receive_en ? sizeof(PLI_INT32) : 0,
+      &cd_io.d_i, receive_en ? sizeof(zbus_d_i)  : 0
+    )
+  )
+    printf ("ZBUS EXCHANGE ERROR");
 }
-
-// shared global structures
-int      c_i;
-zbus_d_i d_i;
-zbus_d_o d_o;
-int      c_o;
-// constant structure sizes
-const unsigned int d_o_len = sizeof(zbus_d_o);
-const unsigned int c_o_len = sizeof(PLI_INT32);
-const unsigned int c_i_len = sizeof(PLI_INT32);
-const unsigned int d_i_len = sizeof(zbus_d_i);
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -57,23 +51,23 @@ int zbus_reset ()
 {
   unsigned int rst, stp;
 
-  interface_exchange (&d_o, 0, &c_o, 0, &c_i, c_i_len, &d_i, d_i_len);
-  rst = c_i;
+  zbus_exchange (0, 1);
+  rst = cd_io.c_i;
 
-  d_o.dat.aval = 0xffffffff;
-  d_o.dat.bval = 0xffffffff;
-  d_o.adr.aval = 0xffffffff;
-  d_o.adr.bval = 0xfffffff0;
-  d_o.ctl.aval = 0x0000001f;
-  d_o.ctl.bval = 0x0000001f;
+  cd_io.d_o.dat.aval = 0xffffffff;
+  cd_io.d_o.dat.bval = 0xffffffff;
+  cd_io.d_o.adr.aval = 0xffffffff;
+  cd_io.d_o.adr.bval = 0xfffffff0;
+  cd_io.d_o.ctl.aval = 0x0000001f;
+  cd_io.d_o.ctl.bval = 0x0000001f;
 
   stp = 0;
-  c_o = stp;
+  cd_io.c_o = stp;
 
   while (rst)
   {
-    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
-    rst = c_i;
+    zbus_exchange (1, 1);
+    rst = cd_io.c_i;
   }
 
   return 0;
@@ -83,49 +77,49 @@ int zbus_reset ()
 //
 //////////////////////////////////////////////////////////////////////////////
 
-int zbus_rw (unsigned int wen, int adr, int dat)
+int zbus_rw (unsigned int wen, int adr, int sel, int dat)
 {
   unsigned int rst, stp;
   unsigned int ack, req;
 
-  d_o.dat.aval = dat;
-  d_o.dat.bval = 0x00000000;
-  d_o.adr.aval = adr;
-  d_o.adr.bval = 0x00000000;
-  d_o.ctl.aval = 0x0000006f + (wen << 4);
-  d_o.ctl.bval = 0x00000000;
+  cd_io.d_o.dat.aval = dat;
+  cd_io.d_o.dat.bval = 0x00000000;
+  cd_io.d_o.adr.aval = adr;
+  cd_io.d_o.adr.bval = 0x00000000;
+  cd_io.d_o.ctl.aval = 0x0000006f + (wen << 4);
+  cd_io.d_o.ctl.bval = 0x00000000;
 
   stp = 0;
-  c_o = stp;
+  cd_io.c_o = stp;
 
   ack = 0;
 
   while (!ack)
   {
-    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
-    rst = c_i;
-    ack = d_i.ctl.aval & 0x2;
+    zbus_exchange (1, 1);
+    rst = cd_io.c_i;
+    ack = cd_io.d_i.ctl.aval & 0x2;
   }
 
   if (!wen)
   {
-    req = d_i.ctl.aval & 0x1;
+    req = cd_io.d_i.ctl.aval & 0x1;
   
-    d_o.dat.aval = 0xffffffff;
-    d_o.dat.bval = 0xffffffff;
-    d_o.adr.aval = 0xffffffff;
-    d_o.adr.bval = 0xffffffff;
-    d_o.ctl.aval = 0x0000001f;
-    d_o.ctl.bval = 0x0000001f;
+    cd_io.d_o.dat.aval = 0xffffffff;
+    cd_io.d_o.dat.bval = 0xffffffff;
+    cd_io.d_o.adr.aval = 0xffffffff;
+    cd_io.d_o.adr.bval = 0xffffffff;
+    cd_io.d_o.ctl.aval = 0x0000001f;
+    cd_io.d_o.ctl.bval = 0x0000001f;
   
     while (!req) {
-      interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
-      rst = c_i;
-      req = d_i.ctl.aval & 0x1;
+      zbus_exchange (1, 1);
+      rst = cd_io.c_i;
+      req = cd_io.d_i.ctl.aval & 0x1;
     }
   }
 
-  dat = d_i.dat.aval;
+  dat = cd_io.d_i.dat.aval;
 
   return dat;
 }
@@ -134,26 +128,28 @@ int zbus_rw (unsigned int wen, int adr, int dat)
 //
 //////////////////////////////////////////////////////////////////////////////
 
-void zbus_idle (unsigned int cycles)
+int zbus_idle (unsigned int cycles)
 {
   unsigned int rst, stp;
   unsigned int n;
 
-  d_o.dat.aval = 0xffffffff;
-  d_o.dat.bval = 0xffffffff;
-  d_o.adr.aval = 0xffffffff;
-  d_o.adr.bval = 0xffffffff;
-  d_o.ctl.aval = 0x0000001f;
-  d_o.ctl.bval = 0x0000001f;
+  cd_io.d_o.dat.aval = 0xffffffff;
+  cd_io.d_o.dat.bval = 0xffffffff;
+  cd_io.d_o.adr.aval = 0xffffffff;
+  cd_io.d_o.adr.bval = 0xffffffff;
+  cd_io.d_o.ctl.aval = 0x0000001f;
+  cd_io.d_o.ctl.bval = 0x0000001f;
 
   stp = 0;
-  c_o = stp;
+  cd_io.c_o = stp;
 
   for (n = 0; n < cycles; n++)
   {
-    interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, c_i_len, &d_i, d_i_len);
-    rst = c_i;
+    zbus_exchange (1, 1);
+    rst = cd_io.c_i;
   }
+
+  return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -164,16 +160,16 @@ int zbus_stop ()
 {
   unsigned int rst, stp;
 
-  d_o.dat.aval = 0xffffffff;
-  d_o.dat.bval = 0xffffffff;
-  d_o.adr.aval = 0xffffffff;
-  d_o.adr.bval = 0xffffffff;
-  d_o.ctl.aval = 0x0000001f;
-  d_o.ctl.bval = 0x0000001f;
+  cd_io.d_o.dat.aval = 0xffffffff;
+  cd_io.d_o.dat.bval = 0xffffffff;
+  cd_io.d_o.adr.aval = 0xffffffff;
+  cd_io.d_o.adr.bval = 0xffffffff;
+  cd_io.d_o.ctl.aval = 0x0000001f;
+  cd_io.d_o.ctl.bval = 0x0000001f;
 
   stp = 1;
-  c_o = stp;
-  interface_exchange (&d_o, d_o_len, &c_o, c_o_len, &c_i, 0, &d_i, 0);
+  cd_io.c_o = stp;
+  zbus_exchange (1, 0);
 
   return 0;
 }

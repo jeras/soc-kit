@@ -22,17 +22,30 @@ typedef struct {
   uint32_t ack:1;
 } zbus_d_o_ctl;
 
-void zbus_idle (unsigned int);
+// shared global structures
+typedef struct {
+  int      c_i;
+  zbus_d_i d_i;
+  zbus_d_o d_o;
+  int      c_o;
+} zbus_cd_io;
+
+zbus_cd_io cd_io;
+
+int zbus_exchange (int, int);
+
 int zbus_reset ();
+int zbus_rw (unsigned int, int, int, int);
+int zbus_idle (unsigned int);
 int zbus_stop ();
 
-//unsigned int ioread8(void *addr);
-//unsigned int ioread16(void *addr);
-uint32_t ioread32(void *addr);
+uint8_t  ioread8(void *);
+//unsigned int ioread16(void *);
+uint32_t ioread32(void *);
 
-//void iowrite8(u8 value, void *addr);
-//void iowrite16(u16 value, void *addr);
-void iowrite32(uint32_t value, void *addr);
+//void iowrite8  (uint8_t, void *);
+//void iowrite16 (uint16_t, void *);
+void iowrite32 (uint32_t, void *);
 
 //void ioread8_rep(void *addr, void *buf, unsigned long count);
 //void ioread16_rep(void *addr, void *buf, unsigned long count);
