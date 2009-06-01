@@ -39,12 +39,12 @@ int zbus_rw (unsigned int, int, int, int);
 int zbus_idle (unsigned int);
 int zbus_stop ();
 
-uint8_t  ioread8(void *);
-//unsigned int ioread16(void *);
-uint32_t ioread32(void *);
+uint8_t  ioread8  (void *);
+uint16_t ioread16 (void *);
+uint32_t ioread32 (void *);
 
-//void iowrite8  (uint8_t, void *);
-//void iowrite16 (uint16_t, void *);
+void iowrite8  (uint8_t,  void *);
+void iowrite16 (uint16_t, void *);
 void iowrite32 (uint32_t, void *);
 
 //void ioread8_rep(void *addr, void *buf, unsigned long count);

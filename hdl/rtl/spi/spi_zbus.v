@@ -27,11 +27,11 @@
 
 module spi_zbus #(
   // system bus parameters
-  parameter DW = 32,          // data bus width
-  parameter SW = DW/8,        // select signal width or bus width in bytes
-  parameter AW = 32,          // address bus width
+  parameter DW = 32,         // data bus width
+  parameter SW = DW/8,       // select signal width or bus width in bytes
+  parameter AW = 32,         // address bus width
   // SPI slave select paramaters
-  parameter SSW = 8,          // slave select register width
+  parameter SSW = 8,         // slave select register width
   // SPI interface configuration parameters
   parameter CFG_bit   =  0,  // select bit mode instead of byte mode by default
   parameter CFG_3wr   =  0,  // duplex type (0 - SPI full duplex, 1 - 3WIRE half duplex (MOSI is shared))
@@ -79,14 +79,9 @@ module spi_zbus #(
   inout  wire           spi_mosi_e  // serial master output slave input or threewire bidirectional (output enable)
 );
 
-/*\
- *  definitions are copied into parameters,
- *  offering two parametrization options
-\*/
-
-/*\
- *  local signals
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// local signals                                                            //
+//////////////////////////////////////////////////////////////////////////////
 
 // clock divider signals
 reg  [PAR_cd_rw-1:0] div_cnt;  // clock divider counter
@@ -102,7 +97,7 @@ wire spi_mi;                   //
 wire clk_l;                    // loopback clock
 
 // spi slave select signals
-reg  [SSW-1:0] reg_ss;   // active high slave select register
+reg  [SSW-1:0] reg_ss;         // active high slave select register
 
 // spi configuration registers (shift direction, clock polarity and phase, 3 wire option)
 reg  cfg_bit, cfg_3wr, cfg_oen, cfg_dir, cfg_cpol, cfg_cpha;
@@ -113,11 +108,11 @@ reg  [PAR_tu_cw-1:0] ctl_cnt;  // counter of transfered data units (bytes by def
 wire ctl_run;                  // transfer running status
 
 
-/*\
- *  generalized bus signals
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// generalized bus signals                                                  //
+//////////////////////////////////////////////////////////////////////////////
 
-wire          zi_trn;  // bus transfer
+wire          zi_trn;      // bus transfer
 
 // register select signals
 wire          zi_sel_div;  // clock divider factor
@@ -133,15 +128,12 @@ wire    [7:0] zi_dat_cfg, zo_dat_cfg;
 wire    [7:0] zi_dat_ctl, zo_dat_ctl;
 wire [DW-1:0] zi_dat_dat, zo_dat_dat;
 
-/*\
- *  bus access implementation (generalisation of wishbone bus signals)
-\*/
+//////////////////////////////////////////////////////////////////////////////
+// bus access implementation (generalisation of wishbone bus signals)       //
+//////////////////////////////////////////////////////////////////////////////
 
 // bus transfer
 assign zi_trn = zi_req & zi_ack;
-
-// bus address and select
-assign bus_sel = zi_sel;
 
 // request acknowledge
 assign zi_ack = zi_req & (~zo_req | zo_ack);
@@ -150,67 +142,67 @@ assign zi_ack = zi_req & (~zo_req | zo_ack);
 assign zo_req = zi_req & ~zi_wen;
 
 // address decoder
-assign zi_sel_dat = (zi_adr == 4);
-generate
-if (DW == 32) begin
-  assign zi_sel_div = (zi_adr == 0) ? zi_sel [3] : 1'b0;
-  assign zi_sel_ss  = (zi_adr == 0) ? zi_sel [2] : 1'b0;
-  assign zi_sel_cfg = (zi_adr == 0) ? zi_sel [1] : 1'b0;
-  assign zi_sel_ctl = (zi_adr == 0) ? zi_sel [0] : 1'b0;
-end else
-if (DW == 16) begin
-  assign zi_sel_div = (zi_adr == 2) ? zi_sel [1] : 1'b0;
-  assign zi_sel_ss  = (zi_adr == 2) ? zi_sel [0] : 1'b0;
-  assign zi_sel_cfg = (zi_adr == 0) ? zi_sel [1] : 1'b0;
-  assign zi_sel_ctl = (zi_adr == 0) ? zi_sel [0] : 1'b0;
-end else
-if (DW == 16) begin
-  assign zi_sel_div = (zi_adr == 3);
-  assign zi_sel_ss  = (zi_adr == 2);
-  assign zi_sel_cfg = (zi_adr == 1);
-  assign zi_sel_ctl = (zi_adr == 0);
-end else begin
-  //$display ("ERROR () Data bus width is not properly defined!");
+generate case (DW)
+32: begin
+  assign zi_sel_div = (zi_adr[2:2] == 0) & zi_sel [3];
+  assign zi_sel_ss  = (zi_adr[2:2] == 0) & zi_sel [2];
+  assign zi_sel_cfg = (zi_adr[2:2] == 0) & zi_sel [1];
+  assign zi_sel_ctl = (zi_adr[2:2] == 0) & zi_sel [0];
 end
-endgenerate
+16: begin
+  assign zi_sel_div = (zi_adr[2:1] == 2) & zi_sel [1];
+  assign zi_sel_ss  = (zi_adr[2:1] == 2) & zi_sel [0];
+  assign zi_sel_cfg = (zi_adr[2:1] == 0) & zi_sel [1];
+  assign zi_sel_ctl = (zi_adr[2:1] == 0) & zi_sel [0];
+end
+ 8: begin
+  assign zi_sel_div = (zi_adr[2:0] == 3);
+  assign zi_sel_ss  = (zi_adr[2:0] == 2);
+  assign zi_sel_cfg = (zi_adr[2:0] == 1);
+  assign zi_sel_ctl = (zi_adr[2:0] == 0);
+end
+endcase endgenerate
+
+assign zi_sel_dat = (zi_adr[2] == 1);
 
 // input data asignment
-assign zi_dat_dat = zi_dat;
-generate
-if (DW == 32) begin
+generate case (DW)
+32: begin
   assign {zi_dat_div, zi_dat_ss, zi_dat_cfg, zi_dat_ctl} = zi_dat;
-end else
-if (DW == 16) begin
+end
+16: begin
   assign {zi_dat_div, zi_dat_ss } = zi_dat;
   assign {zi_dat_cfg, zi_dat_ctl} = zi_dat;
-end else
-if (DW ==  8) begin
+end
+ 8: begin
   assign  zi_dat_div = zi_dat;
   assign  zi_dat_ss  = zi_dat;
   assign  zi_dat_cfg = zi_dat;
   assign  zi_dat_ctl = zi_dat;
 end
-endgenerate
+endcase endgenerate
+
+assign zi_dat_dat = zi_dat;
 
 // output data multiplexer
-generate
-if (DW == 32) begin
+generate case (DW)
+32: begin
 assign zo_dat = (zi_adr[2]   == 0) ? {zo_dat_div, zo_dat_ss, zo_dat_cfg, zo_dat_ctl} :
                                       zo_dat_dat                                     ;
-end else
-if (DW == 16) begin
+end
+16: begin
 assign zo_dat = (zi_adr[2:1] == 2) ? {zo_dat_div, zo_dat_ss } :
                 (zi_adr[2:1] == 0) ? {zo_dat_cfg, zo_dat_ctl} :
                                       zo_dat_dat              ;
-end else
-if (DW ==  8) begin
+end
+ 8: begin
 assign zo_dat = (zi_adr[2:0] == 3) ?  zo_dat_div :
                 (zi_adr[2:0] == 2) ?  zo_dat_ss  :
                 (zi_adr[2:0] == 1) ?  zo_dat_cfg :
                 (zi_adr[2:0] == 0) ?  zo_dat_ctl :
                                       zo_dat_dat ;
 end
-endgenerate
+endcase endgenerate
 
 //////////////////////////////////////////////////////////////////////////////
 // clock divider                                                            //

@@ -18,6 +18,24 @@ int main ()
   ioread32 (base+0x0);
   ioread32 (base+0x4);
 
+  ioread16 (base+0x0);
+  ioread16 (base+0x2);
+
+  ioread8  (base+0x0);
+  ioread8  (base+0x1);
+  ioread8  (base+0x2);
+  ioread8  (base+0x3);
+
+  zbus_idle (4);
+
+  iowrite32 (0x89abcdef, base+0x0);
+  iowrite16 (    0x4567, base+0x0);
+  iowrite16 (0x0123    , base+0x2);
+  iowrite8  (      0xef, base+0x0);
+  iowrite8  (    0xcd  , base+0x1);
+  iowrite8  (  0xab    , base+0x2);
+  iowrite8  (0x89      , base+0x3);
+
   zbus_idle (4);
 
   // write output fata

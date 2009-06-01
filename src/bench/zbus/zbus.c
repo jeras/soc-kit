@@ -8,20 +8,36 @@
 
 #include <stdio.h>
 
-uint8_t ioread8(void *addr)
+uint8_t  ioread8 (void *addr)
 {
   int shift = (uint32_t) addr & 0x3;
   return (zbus_rw(0, addr, 0x1 << shift, 0) >> (8*shift));
 }
-//unsigned int ioread16(void *addr);
-uint32_t ioread32(void *addr)
+
+uint16_t ioread16 (void *addr)
+{
+  int shift = (uint32_t) addr & 0x3;
+  return (zbus_rw(0, addr, 0x3 << shift, 0) >> (8*shift));
+}
+
+uint32_t ioread32 (void *addr)
 {
   return zbus_rw(0, addr, 0xf, 0);
 }
 
-//void iowrite8(u8 value, void *addr);
-//void iowrite16(u16 value, void *addr);
-void iowrite32(uint32_t value, void *addr)
+void iowrite8  (uint8_t  value, void *addr)
+{
+  int shift = (uint32_t) addr & 0x3;
+  zbus_rw(1, addr, 0x1 << shift, value << (8*shift));
+}
+
+void iowrite16 (uint16_t value, void *addr)
+{
+  int shift = (uint32_t) addr & 0x3;
+  zbus_rw(1, addr, 0x3 << shift, value << (8*shift));
+}
+
+void iowrite32 (uint32_t value, void *addr)
 {
   zbus_rw(1, addr, 0xf, value);
 }
@@ -86,7 +102,7 @@ int zbus_rw (unsigned int wen, int adr, int sel, int dat)
   cd_io.d_o.dat.bval = 0x00000000;
   cd_io.d_o.adr.aval = adr;
   cd_io.d_o.adr.bval = 0x00000000;
-  cd_io.d_o.ctl.aval = 0x0000006f + (wen << 4);
+  cd_io.d_o.ctl.aval = 0x00000060 + ((wen & 0x1) << 4) + (sel & 0xf);
   cd_io.d_o.ctl.bval = 0x00000000;
 
   stp = 0;
