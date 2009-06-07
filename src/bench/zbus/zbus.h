@@ -47,10 +47,11 @@ void iowrite8  (uint8_t,  void *);
 void iowrite16 (uint16_t, void *);
 void iowrite32 (uint32_t, void *);
 
-//void ioread8_rep(void *addr, void *buf, unsigned long count);
-//void ioread16_rep(void *addr, void *buf, unsigned long count);
-//void ioread32_rep(void *addr, void *buf, unsigned long count);
-//void iowrite8_rep(void *addr, const void *buf, unsigned long count);
-//void iowrite16_rep(void *addr, const void *buf, unsigned long count);
-//void iowrite32_rep(void *addr, const void *buf, unsigned long count);
+void ioread8_rep  (void *addr,       void *buf, unsigned long count);
+void ioread16_rep (void *addr,       void *buf, unsigned long count);
+void ioread32_rep (void *addr,       void *buf, unsigned long count);
+
+void iowrite8_rep (void *addr, const void *buf, unsigned long count);
+void iowrite16_rep(void *addr, const void *buf, unsigned long count);
+void iowrite32_rep(void *addr, const void *buf, unsigned long count);
 

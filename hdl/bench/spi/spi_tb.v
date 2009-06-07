@@ -124,37 +124,50 @@ spi_zbus #(
   .PAR_cd_ft  ( 0)   // default clock division factor
 ) spi_zbus (
   // system signals (used by the CPU bus interface)
-  .clk       (clk),
-  .rst       (rst),
+  .clk     (clk),
+  .rst     (rst),
   // zbus input interface
-  .zi_req    (zms_req),     // transfer request
-  .zi_wen    (zms_wen),     // write enable (0-read or 1-wite)
-  .zi_adr    (zms_adr),     // address
-  .zi_sel    (zms_sel),     // byte select
-  .zi_dat    (zms_dat),     // data
-  .zi_ack    (zms_ack),     // transfer acknowledge
+  .zi_req  (zms_req),     // transfer request
+  .zi_wen  (zms_wen),     // write enable (0-read or 1-wite)
+  .zi_adr  (zms_adr),     // address
+  .zi_sel  (zms_sel),     // byte select
+  .zi_dat  (zms_dat),     // data
+  .zi_ack  (zms_ack),     // transfer acknowledge
   // zbus output interface
-  .zo_req    (zsm_req),     // transfer request
-  .zo_dat    (zsm_dat),     // data
-  .zo_ack    (zsm_ack),     // transfer acknowledge
+  .zo_req  (zsm_req),     // transfer request
+  .zo_dat  (zsm_dat),     // data
+  .zo_ack  (zsm_ack),     // transfer acknowledge
   // additional processor interface signals
-  .irq       (),
-  // SPI signals
-  .spi_ss_n   (ss_n),   // active low slave select signal
-  .spi_sclk_i (sclk),   // serial clock
-  .spi_sclk_o (sclk),   // serial clock
-  .spi_miso   (miso),   // serial master input slave output
-  .spi_mosi_i (mosi_i), // serial master output slave input or threewire bidirectional (input)
-  .spi_mosi_o (mosi_o), // serial master output slave input or threewire bidirectional (output)
-  .spi_mosi_e (mosi_e)  // serial master output slave input or threewire bidirectional (output enable)
+  .irq     (),
+  // SPI signals (should be connected to tristate IO pads)
+  // serial clock
+  .sclk_i  (sclk),
+  .sclk_o  (sclk),
+  .sclk_e  (sclk_oe),
+  // serial input output SIO[3:0] or {HOLD_n, WP_n, MISO, MOSI/3wire-bidir}
+  .sio_i   ({hold_n_i, wp_n_i, miso_i, mosi_i}),
+  .sio_o   ({hold_n_o, wp_n_o, miso_o, mosi_o}),
+  .sio_e   ({hold_n_e, wp_n_e, miso_e, mosi_e}),
+  // active low slave select signal
+  .ss_n    (ss_n)
 );
 
 //////////////////////////////////////////////////////////////////////////////
-// spi tristate buffers                                                     //
+// SPI tristate buffers                                                     //
 //////////////////////////////////////////////////////////////////////////////
 
-assign mosi_i = mosi;
-assign mosi   = mosi_e ? mosi_o : 1'bz;
+// MOSI
+assign mosi_i   = mosi;
+assign mosi     = mosi_e   ? mosi_o   : 1'bz;
+// MISO
+assign miso_i   = miso;
+assign miso     = miso_e   ? miso_o   : 1'bz;
+// WP_n
+assign wp_n_i   = wp_n;
+assign wp_n     = wp_n_e   ? wp_n_o   : 1'bz;
+// HOLD_n
+assign hold_n_i = hold_n;
+assign hold_n   = hold_n_e ? hold_n_o : 1'bz;
 
 //////////////////////////////////////////////////////////////////////////////
 // SPI slave (serial Flash)                                                 //

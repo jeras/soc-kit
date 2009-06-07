@@ -57,26 +57,29 @@ module spi_zbus #(
   input  wire           clk,
   input  wire           rst,
   // zbus input interface
-  input  wire           zi_req,     // transfer request
-  input  wire           zi_wen,     // write enable (0-read or 1-wite)
-  input  wire  [AW-1:0] zi_adr,     // address
-  input  wire  [SW-1:0] zi_sel,     // byte select
-  input  wire  [DW-1:0] zi_dat,     // data
-  output wire           zi_ack,     // transfer acknowledge
+  input  wire           zi_req,  // transfer request
+  input  wire           zi_wen,  // write enable (0-read or 1-wite)
+  input  wire  [AW-1:0] zi_adr,  // address
+  input  wire  [SW-1:0] zi_sel,  // byte select
+  input  wire  [DW-1:0] zi_dat,  // data
+  output wire           zi_ack,  // transfer acknowledge
   // zbus output interface
-  output wire           zo_req,     // transfer request
-  output wire  [DW-1:0] zo_dat,     // data
-  input  wire           zo_ack,     // transfer acknowledge
+  output wire           zo_req,  // transfer request
+  output wire  [DW-1:0] zo_dat,  // data
+  input  wire           zo_ack,  // transfer acknowledge
   // additional processor interface signals
   output wire           irq,
-  // SPI signals
-  output wire [SSW-1:0] spi_ss_n,   // active low slave select signal
-  input  wire           spi_sclk_i, // serial clock loopback input
-  output wire           spi_sclk_o, // serial clock output
-  input  wire           spi_miso,   // serial master input slave output
-  output wire           spi_mosi_i, // serial master output slave input or threewire bidirectional (input)
-  inout  wire           spi_mosi_o, // serial master output slave input or threewire bidirectional (output)
-  inout  wire           spi_mosi_e  // serial master output slave input or threewire bidirectional (output enable)
+  // SPI signals (at a higher level should be connected to tristate IO pads)
+  // serial clock
+  input  wire           sclk_i,  // input (clock loopback)
+  output wire           sclk_o,  // output
+  output wire           sclk_e,  // output enable
+  // serial input output SIO[3:0] or {HOLD_n, WP_n, MISO, MOSI/3wire-bidir}
+  input  wire     [3:0] sio_i,   // input (clock loopback)
+  output wire     [3:0] sio_o,   // output
+  output wire     [3:0] sio_e,   // output enable
+  // active low slave select signal
+  output wire [SSW-1:0] ss_n
 );
 
 //////////////////////////////////////////////////////////////////////////////
@@ -265,7 +268,7 @@ always @(posedge clk, posedge rst)
 if (rst) begin
   cfg_bit  <= CFG_bit;
   cfg_3wr  <= CFG_3wr;
-  cfg_oen  <= CFG_3wr;
+  cfg_oen  <= CFG_oen;
   cfg_dir  <= CFG_dir;
   cfg_cpol <= CFG_cpol;
   cfg_cpha <= CFG_cpha;
@@ -328,7 +331,7 @@ end
 assign zo_dat_dat = reg_s;
 
 // the serial output from the shift register depends on the direction of shifting
-assign ser_o      = (cfg_dir) ? reg_s [PAR_sh_rw-1] : reg_s [0];
+assign ser_o  = (cfg_dir) ? reg_s [PAR_sh_rw-1] : reg_s [0];
 
 always @(posedge clk_l)
 if ( cfg_cpha)  reg_o <= ser_o;
@@ -337,17 +340,22 @@ always @(posedge clk_l)
 if (~cfg_cpha)  reg_i <= spi_mi;
 
 // spi clock output pin
-assign spi_sclk_o = div_byp ? cfg_cpol ^ (ctl_run & ~clk) : div_clk;
+assign sclk_o = div_byp ? cfg_cpol ^ (ctl_run & ~clk) : div_clk;
 
 // loop clock
-assign clk_l      = spi_sclk_i ^ cfg_cpol;
+assign clk_l  = sclk_i ^ cfg_cpol;
 
 // the serial input depends on the used protocol (SPI, 3 wire)
-assign spi_mi     = cfg_3wr ? spi_mosi_i : spi_miso;
+assign spi_mi   = cfg_3wr ? sio_i[0] : sio_i[1];
 
-assign ser_i      = ~cfg_cpha ? reg_i : spi_mi;
-assign spi_mosi_o = ~cfg_cpha ? ser_o : reg_o;
-assign spi_mosi_e = cfg_oen;
+assign ser_i    = ~cfg_cpha ? reg_i : spi_mi;
+assign sio_o[0] = ~cfg_cpha ? ser_o : reg_o;
+assign sio_e[0] = cfg_oen;
 
+// temporary IO handler
+
+assign sclk_e     = 1'b1;
+assign sio_o[3:1] = 3'b11x;
+assign sio_e[3:1] = 1'b110;
 
 endmodule
