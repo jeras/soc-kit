@@ -1,0 +1,12 @@
+#!/bin/sh
+
+rm tmp/*
+
+# build zbus testbench
+iverilog -o tmp/zbus.vvp hdl/rtl/zbus/zbus_fifo_async.v hdl/bench/zbus/zbus_tb.v
+
+# execute Verilog simulation and the firmware simultaneously
+vvp tmp/zbus.vvp
+
+# gtkwave -f test.vcd -a hdl/bench/zbus/zbus.sav
+
