@@ -1,5 +1,5 @@
 module zbus_source #(
-  parameter BW = 0,
+  parameter BW = 1,
   parameter XZ = 1'bx
 )(
   // system signals

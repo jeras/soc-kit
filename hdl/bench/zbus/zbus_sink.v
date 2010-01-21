@@ -1,6 +1,8 @@
 module zbus_sink #(
-  parameter BW = 0,
-  parameter XZ = 1'bx
+  parameter BW  = 8,
+  parameter LN  = 2,
+  parameter LNL = $clog2(LN),
+  parameter XZ  = 1'bx
 )(
   // system signals
   input  wire           z_clk,  // system clock
@@ -11,13 +13,71 @@ module zbus_sink #(
   output wire           z_ack   // transfer acknowledge
 );
 
-assign z_ack = 1'b1;
+reg  [BW-1:0] mem_bus [LN-1:0];  // transfer pipeline: transfer bus data
+reg  [BW-1:0] mem_msk [LN-1:0];  // transfer pipeline: transfer bus data mask
+reg  [32-1:0] mem_dly [LN-1:0];  // transfer pipeline: transfer acknowledge delay
+reg  [LN-1:0] mem_vld;           // valid status of each fifo location
+
+reg [LNL-1:0] wpt, rpt;          // write and read pointers
+
+reg  [32-1:0] dly;               // transfer acknowledge delay counter 
+
+// if there is a transfer in the pipeline use the provided delay
+assign z_ack = mem_vld[rpt] ? (mem_dly[rpt] == dly) : 1'b1;
 
 assign z_trn = z_vld & z_ack;
 
+//////////////////////////////////////////////////////////////////////////////
+// write into the transfer pipeline                                         //
+//////////////////////////////////////////////////////////////////////////////
+
+always @ (posedge z_rst)
+if (z_rst) begin
+  mem_vld <= {LN{1'b0}};
+  wpt     <= 0;
+end
+
+// task for adding transfers into the pipeline
+task trn (
+  input [BW-1:0] bus,
+  input [BW-1:0] msk,
+  input [32-1:0] dly
+);
+begin
+  mem_bus [wpt] = bus;
+  mem_msk [wpt] = msk;
+  mem_dly [wpt] = dly;
+  mem_vld [wpt] = 1'b1;
+  wpt = wpt+1;
+end  
+endtask
+
+//////////////////////////////////////////////////////////////////////////////
+// read from the transfer pipeline                                          //
+//////////////////////////////////////////////////////////////////////////////
+
 always @ (posedge z_clk, posedge z_rst)
-if (rst) begin
-end else if (trn) begin
+if (z_rst) begin
+  rpt <= 0;
+  dly <= 0;
+end else begin
+  if (z_vld) begin
+    if (z_ack) begin
+      dly <= 0;
+      if (mem_vld[rpt]) begin
+        rpt <= (rpt + 1) % LN;
+        if (mem_msk[rpt] & (mem_bus[rpt] ^ z_bus))
+          $display ("DEBUG: ERROR received %h != %h", z_bus, mem_bus[rpt]);
+        else
+          $display ("DEBUG: SUCESS received %h", z_bus);
+        mem_vld[rpt] <= 1'b0;
+      end
+    end else begin
+      dly <= dly + 1;
+    end
+  end else begin
+    dly <= 0;
+  end
 end
 
 

@@ -1,7 +1,7 @@
 module zbus_mux #(
-  parameter BW  = 0,                // bus width
+  parameter BW  = 8,                // bus width
   parameter BN  = 2,                // number of busses
-  parameter BNL = $log2(BN),
+  parameter BNL = $clog2(BN),
   parameter REG = 0                 // registerd outputs for better performance
 )(
   // system signals
@@ -30,7 +30,9 @@ wire [BN-1:0] priority_grant;       // list of transfer grants
 // unsorted ports
 wire [BN-1:0] port_active;
 reg  [BN-1:0] port_active_r;
+wire [BN-1:0] port_select;
 
+reg           hold;
 
 // sort valid signals into a list by priority
 generate for (i=0; i<BN; i=i+1)
@@ -49,7 +51,7 @@ assign port_active [i] = priority_grant [priority [i*BNL+:BNL]];
 endgenerate
 
 // registered port active
-always (posedge clk, posedge rst)
+always @ (posedge clk, posedge rst)
 if (rst) port_active_r <= {BN{1'b0}};
 else     port_active_r <= port_active;
 
@@ -69,6 +71,6 @@ assign zo_bus = port_select [i] ? {BW{1'b0}} : zi_bus [i*BW+:BW];
 end endgenerate
 
 // input ports acknowledge
-assign zi_ack [i] = port_select;
+assign zi_ack = port_select & {BN{zo_ack}};
 
 endmodule

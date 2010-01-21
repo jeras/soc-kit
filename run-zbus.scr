@@ -3,10 +3,14 @@
 rm tmp/*
 
 # build zbus testbench
-iverilog -o tmp/zbus.vvp hdl/rtl/zbus/zbus_fifo_async.v hdl/bench/zbus/zbus_tb.v
+iverilog -o tmp/zbus_fifo_reg_async.vvp \
+  hdl/rtl/zbus/zbus_fifo_reg_async.v \
+  hdl/bench/zbus/zbus_fifo_reg_async_tb.v \
+  hdl/bench/zbus/zbus_source.v \
+  hdl/bench/zbus/zbus_sink.v \
 
 # execute Verilog simulation and the firmware simultaneously
-vvp tmp/zbus.vvp
+vvp tmp/zbus_fifo_reg_async.vvp
 
 # gtkwave -f test.vcd -a hdl/bench/zbus/zbus.sav
 

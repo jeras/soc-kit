@@ -1,6 +1,7 @@
-module zbus_tb ();
+module zbus_fifo_reg_async_tb ();
 
-localparam BW = 8; 
+localparam BW = 8;
+localparam LN = 4;
 
 integer i;
 
@@ -17,9 +18,9 @@ wire           zi_trn, zo_trn;
 // request for a dumpfile
 initial begin
   $dumpfile("test.vcd");
-  $dumpvars(0, zbus_tb);
-  for (i=0; i<4; i=i+1)
-  $dumpvars(0, zbus_fifo_async.mem[i]);
+  $dumpvars(0, zbus_fifo_reg_async_tb);
+  for (i=0; i<LN; i=i+1)
+  $dumpvars(0, zbus_fifo_reg_async.mem[i]);
 end
 
 // generate two asinchronous clocks
@@ -34,7 +35,10 @@ initial begin
   repeat (2) @ (posedge zi_clk);
   zi_rst = 1'b0;
   repeat (2) @ (posedge zi_clk);
-  for (i=0; i<19; i=i+1)  zbus_source.trn (i);
+  for (i=0; i<19; i=i+1) begin
+    zbus_source.trn (i);
+    zbus_sink.trn   (i, {BW{1'b1}}, 0);
+  end
   repeat (4) @ (posedge zo_clk);
   $finish();
 end
@@ -57,10 +61,10 @@ zbus_source #(
   .z_ack  (zi_ack)
 );
 
-zbus_fifo_async #(
+zbus_fifo_reg_async #(
   .BW  (BW),
-  .LN  (4)
-) zbus_fifo_async (
+  .LN  (LN)
+) zbus_fifo_reg_async (
   // system signals
   .zi_clk  (zi_clk),
   .zi_rst  (zi_rst),
@@ -75,53 +79,17 @@ zbus_fifo_async #(
   .zo_ack  (zo_ack)
 );
 
-assign zo_ack = 1'b1;
-
-assign zo_trn = zo_vld & zo_ack;
-
-integer o;
-
-always @ (posedge zo_clk, posedge zo_rst)
-if (zo_rst) o <= 0;
-else        o <= o + zo_trn;
-
-always @ (posedge zo_clk)
-if (zo_trn) begin
-  if (zo_bus == o)  $display ("SUCESS: transfer %d", o);
-  else              $display ("ERROR : transfer %d", o);
-end
-
-endmodule
-
-
-module zbus_source #(
-  parameter BW = 0,
-  parameter XZ = 1'bx
-)(
+zbus_sink #(
+  .BW  (BW),
+  .LN  (LN)
+) zbus_sink (
   // system signals
-  input  wire           z_clk,  // system clock
-  input  wire           z_rst,  // asinchronous reset
-  // zbus signals
-  output reg            z_vld,  // transfer valid
-  output reg   [BW-1:0] z_bus,  // grouped bus signals
-  input  wire           z_ack   // transfer acknowledge
+  .z_clk  (zo_clk),
+  .z_rst  (zo_rst),
+  // zbus
+  .z_vld  (zo_vld),
+  .z_bus  (zo_bus),
+  .z_ack  (zo_ack)
 );
-
-always @(posedge z_rst)
-if (z_rst) z_vld <= 1'b0;
-
-task trn (
-  input [BW-1:0] bus
-);
-  reg z_trn;
-begin
-  z_trn = 1'b0;
-  z_vld = 1'b1;
-  z_bus = bus;
-  while (~z_trn) @ (posedge z_clk) z_trn = z_vld & z_ack;
-  #1;
-  z_vld = 1'b0;
-  z_bus = {BW{XZ}};
-end endtask
 
 endmodule
