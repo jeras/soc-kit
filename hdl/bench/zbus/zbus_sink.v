@@ -1,8 +1,7 @@
 module zbus_sink #(
-  parameter BW  = 8,
-  parameter LN  = 2,
-  parameter LNL = $clog2(LN),
-  parameter XZ  = 1'bx
+  parameter BW  = 8,            // bus width
+  parameter LN  = 2,            // line number (pipeline deepth)
+  parameter LNL = $clog2(LN)    // line number logarithm (number of bits for counters)
 )(
   // system signals
   input  wire           z_clk,  // system clock

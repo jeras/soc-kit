@@ -31,16 +31,28 @@ reg [LNL-1:0] rpb;               // read  binary pointer
 reg [CNL-1:0] wcg, wcs;          // write gray counter (synced)
 reg [CNL-1:0] rcg, rcs;          // read  gray counter (synced)
 
+// clipping function needed for LN != 2**n
 function automatic [CNL-1:0] clp (input [CNL-1:0] num, input integer max);
   clp = (num < max) ? num : 0;
 endfunction
 
+// binary to gray conversion
 function automatic [CNL-1:0] b2g (input [CNL-1:0] num);
-  b2g = (num < CN) ? num : 0;
+  b2g = num ^ {1'b0, num[CNL-1:1]};
 endfunction
 
+// gray to binary conversion
 function automatic [CNL-1:0] g2b (input [CNL-1:0] num);
-  g2b = (num < CN) ? num : 0;
+  integer i;
+  reg tmp;
+begin
+  g2b [CNL-1] = num [CNL-1];
+  tmp         = num [CNL-1];
+  for (i=CNL-2; i>=0; i=i-1) begin
+    g2b [i] = num [i] ^ tmp;
+    tmp     = num [i] ^ tmp;
+  end
+end
 endfunction
 
 //////////////////////////////////////////////////////////////////////////////
@@ -48,10 +60,7 @@ endfunction
 //////////////////////////////////////////////////////////////////////////////
 
 assign zi_ack = |zi_num;
-assign zi_num = clp(LN + rcs - wcg, LN+1);
-
-wire [3:0] test;
-assign test = LN + rcs - wcg;
+assign zi_num = clp(LN + g2b(rcs) - g2b(wcg), LN+1);
 
 assign zi_trn = zi_vld & zi_ack;
 
@@ -61,7 +70,11 @@ else        wpb <= clp(wpb + zi_trn, LN);
 
 always @ (posedge zi_clk, posedge zi_rst)
 if (zi_rst) wcg <= {CNL{1'b0}};
-else        wcg <= wcg + zi_trn;
+else        wcg <= b2g(g2b(wcg) + zi_trn);
+
+wire [CNL-1:0] test_b2g, test_g2b;
+assign test_g2b = g2b(wcg);
+assign test_b2g = b2g(test_g2b+1);
 
 always @ (posedge zi_clk, posedge zi_rst)
 if (zi_rst) rcs <= {CNL{1'b0}};
@@ -75,7 +88,7 @@ if (zi_trn) mem [wpb] <= zi_bus;
 //////////////////////////////////////////////////////////////////////////////
 
 assign zo_vld = wcs != rcg;
-assign zo_num = clp(wcs - rcg, CN);
+assign zo_num = clp(g2b(wcs) - g2b(rcg), CN);
 
 assign zo_trn = zo_vld & zo_ack;
 
@@ -85,7 +98,7 @@ else        rpb <= clp(rpb + zo_trn, LN);
 
 always @ (posedge zo_clk, posedge zo_rst)
 if (zi_rst) rcg <= {CNL{1'b0}};
-else        rcg <= rcg + zo_trn;
+else        rcg <= b2g(g2b(rcg) + zo_trn);
 
 always @ (posedge zo_clk, posedge zo_rst)
 if (zi_rst) wcs <= {CNL{1'b0}};
