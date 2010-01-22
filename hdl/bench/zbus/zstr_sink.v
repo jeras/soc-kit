@@ -66,7 +66,7 @@ end else begin
       if (mem_vld[rpt]) begin
         rpt <= (rpt + 1) % LN;
         if (mem_msk[rpt] & (mem_bus[rpt] ^ z_bus))
-          $display ("DEBUG: ERROR received %h != %h", z_bus, mem_bus[rpt]);
+          $display ("DEBUG: ERROR received %h != %h, t=%0t", z_bus, mem_bus[rpt], $time);
         else
           $display ("DEBUG: SUCESS received %h", z_bus);
         mem_vld[rpt] <= 1'b0;
@@ -79,5 +79,11 @@ end else begin
   end
 end
 
+wire [BW-1:0] bus;
+wire [BW-1:0] msk;
+wire [32-1:0] dly1;
+assign bus = mem_bus[rpt];
+assign msk = mem_msk[rpt];
+assign dly1 = mem_dly[rpt];
 
 endmodule

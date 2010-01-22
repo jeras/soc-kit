@@ -43,11 +43,11 @@ assign zi_ack = lm_ack;
 assign lm_ack = zo_ack | ~zo_vld;
 
 always @ (posedge z_clk, posedge z_rst)
-if (z_rst)    lo_vld <= 1'b0;
-else (lm_ack) lo_vld <= lm_vld;
+if (z_rst)       lo_vld <= 1'b0;
+else if (lm_ack) lo_vld <= lm_vld;
 
 always @ (posedge z_clk)
-if (lm_vld & lm_ack) lo_bus = lm_bus;
+if (lm_vld & lm_ack) lo_bus <= lm_bus;
 
 assign zo_vld = lo_vld;
 assign zo_bus = lo_bus;
