@@ -1,6 +1,6 @@
 module zstr_reg #(
   parameter BW  = 0,            // bus width
-  parameter RI  = 1,            // registered outputs on the input side
+  parameter RI  = 0,            // registered outputs on the input side
   parameter RO  = 1             // registered outputs on the output side
 )(
   input  wire          z_clk,   // system clock
@@ -15,8 +15,9 @@ module zstr_reg #(
   input  wire          zo_ack   // transfer acknowledge
 );
 
-// local middle signals
+// local input signals
 reg           li_ack;
+reg  [BW-1:0] li_bus;
 
 // local middle signals
 wire          lm_vld;
@@ -31,25 +32,51 @@ reg  [BW-1:0] lo_bus;
 // registered input side
 //////////////////////////////////////////////////////////////////////////////
 
-assign lm_vld = zi_vld;
-assign lm_bus = zi_bus;
+generate if (RI) begin
 
-assign zi_ack = lm_ack;
+  always @ (posedge z_clk)
+  if (~zi_ack & lm_ack) li_bus <= zi_bus;
+
+  always @ (posedge z_clk, posedge z_ack)
+  if (z_rst) li_ack <= 1'b1;
+  else if (0) li_ack <= 0;
+
+  assign lm_vld = zi_vld;
+  assign lm_bus = (0) ? li_bus : zi_bus;
+  assign zi_ack = li_ack;
+
+end else begin
+
+  assign lm_vld = zi_vld;
+  assign lm_bus = zi_bus;
+  assign zi_ack = lm_ack;
+
+end endgenerate
 
 //////////////////////////////////////////////////////////////////////////////
 // registered output side
 //////////////////////////////////////////////////////////////////////////////
 
-assign lm_ack = zo_ack | ~zo_vld;
+generate if (RO) begin
 
-always @ (posedge z_clk, posedge z_rst)
-if (z_rst)       lo_vld <= 1'b0;
-else if (lm_ack) lo_vld <= lm_vld;
+  always @ (posedge z_clk, posedge z_rst)
+  if (z_rst)       lo_vld <= 1'b0;
+  else if (lm_ack) lo_vld <= lm_vld;
+  
+  always @ (posedge z_clk)
+  if (lm_vld & lm_ack) lo_bus <= lm_bus;
 
-always @ (posedge z_clk)
-if (lm_vld & lm_ack) lo_bus <= lm_bus;
+  assign zo_vld = lo_vld;
+  assign zo_bus = lo_bus;
+  assign lm_ack = zo_ack | ~zo_vld; // 
 
-assign zo_vld = lo_vld;
-assign zo_bus = lo_bus;
+end else begin
+
+  assign zo_vld = lm_vld;
+  assign zo_bus = lm_bus;
+  assign lm_ack = zo_ack;
+
+end endgenerate
+  
 
 endmodule
