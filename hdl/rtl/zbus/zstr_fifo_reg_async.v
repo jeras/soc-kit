@@ -1,4 +1,4 @@
-module zbus_fifo_reg_async #(
+module zstr_fifo_reg_async #(
   parameter BW  = 0,             // bus width
   parameter LN  = 2,             // number of locations (FIFO deepth)
   parameter LNL = $clog2(LN),

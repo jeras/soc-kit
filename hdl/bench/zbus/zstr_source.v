@@ -1,11 +1,11 @@
-module zbus_source #(
+module zstr_source #(
   parameter BW = 1,
   parameter XZ = 1'bx
 )(
   // system signals
   input  wire           z_clk,  // system clock
   input  wire           z_rst,  // asinchronous reset
-  // zbus signals
+  // zstr signals
   output reg            z_vld,  // transfer valid
   output reg   [BW-1:0] z_bus,  // grouped bus signals
   input  wire           z_ack   // transfer acknowledge

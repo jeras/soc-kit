@@ -1,4 +1,4 @@
-module zbus_fifo_reg_async_tb ();
+module zstr_async_tb ();
 
 localparam BW = 8;
 localparam LN = 4;
@@ -8,7 +8,7 @@ integer i;
 // system signals
 reg            zi_clk, zo_clk;
 reg            zi_rst, zo_rst;
-// zbus signals
+// zstr signals
 wire           zi_vld, zo_vld;
 wire  [BW-1:0] zi_bus, zo_bus;
 wire           zi_ack, zo_ack;
@@ -18,9 +18,9 @@ wire           zi_trn, zo_trn;
 // request for a dumpfile
 initial begin
   $dumpfile("test.vcd");
-  $dumpvars(0, zbus_fifo_reg_async_tb);
+  $dumpvars(0, zstr_async_tb);
   for (i=0; i<LN; i=i+1)
-  $dumpvars(0, zbus_fifo_reg_async.mem[i]);
+  $dumpvars(0, zstr_fifo_reg_async.mem[i]);
 end
 
 // generate two asinchronous clocks
@@ -36,8 +36,8 @@ initial begin
   zi_rst = 1'b0;
   repeat (2) @ (posedge zi_clk);
   for (i=0; i<19; i=i+1) begin
-    zbus_source.trn (i);
-    zbus_sink.trn   (i, {BW{1'b1}}, 0);
+    zstr_source.trn (i);
+    zstr_sink.trn   (i, {BW{1'b1}}, 0);
   end
   repeat (4) @ (posedge zo_clk);
   $finish();
@@ -49,22 +49,22 @@ initial begin
   zo_rst = 1'b0;
 end
 
-zbus_source #(
+zstr_source #(
   .BW  (BW)
-) zbus_source (
+) zstr_source (
   // system signals
   .z_clk  (zi_clk),
   .z_rst  (zi_rst),
-  // zbus
+  // zstr
   .z_vld  (zi_vld),
   .z_bus  (zi_bus),
   .z_ack  (zi_ack)
 );
 
-zbus_fifo_reg_async #(
+zstr_fifo_reg_async #(
   .BW  (BW),
   .LN  (LN)
-) zbus_fifo_reg_async (
+) zstr_fifo_reg_async (
   // system signals
   .zi_clk  (zi_clk),
   .zi_rst  (zi_rst),
@@ -79,10 +79,10 @@ zbus_fifo_reg_async #(
   .zo_ack  (zo_ack)
 );
 
-zbus_sink #(
+zstr_sink #(
   .BW  (BW),
   .LN  (LN)
-) zbus_sink (
+) zstr_sink (
   // system signals
   .z_clk  (zo_clk),
   .z_rst  (zo_rst),

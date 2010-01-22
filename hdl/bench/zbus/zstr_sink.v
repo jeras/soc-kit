@@ -1,4 +1,4 @@
-module zbus_sink #(
+module zstr_sink #(
   parameter BW  = 8,            // bus width
   parameter LN  = 2,            // line number (pipeline deepth)
   parameter LNL = $clog2(LN)    // line number logarithm (number of bits for counters)
@@ -6,7 +6,7 @@ module zbus_sink #(
   // system signals
   input  wire           z_clk,  // system clock
   input  wire           z_rst,  // asinchronous reset
-  // zbus signals
+  // zstr signals
   input  wire           z_vld,  // transfer valid
   input  wire  [BW-1:0] z_bus,  // grouped bus signals
   output wire           z_ack   // transfer acknowledge
