@@ -1,6 +1,6 @@
 module zstr_reg #(
   parameter BW  = 0,            // bus width
-  parameter RI  = 0,            // registered outputs on the input side
+  parameter RI  = 1,            // registered outputs on the input side
   parameter RO  = 1             // registered outputs on the output side
 )(
   input  wire          z_clk,   // system clock
@@ -16,8 +16,9 @@ module zstr_reg #(
 );
 
 // local input signals
-reg           li_ack;
+reg           li_vld;
 reg  [BW-1:0] li_bus;
+reg           li_ack;
 
 // local middle signals
 wire          lm_vld;
@@ -34,15 +35,19 @@ reg  [BW-1:0] lo_bus;
 
 generate if (RI) begin
 
+  always @ (posedge z_clk, posedge z_rst)
+  if (z_rst) li_vld <= 1'b0;
+  else       li_vld <= lm_ack ? 1'b0 : li_vld | zi_vld & zi_ack;
+
   always @ (posedge z_clk)
-  if (~zi_ack & lm_ack) li_bus <= zi_bus;
+  if (zi_vld & zi_ack & ~lm_ack) li_bus <= zi_bus;
 
-  always @ (posedge z_clk, posedge z_ack)
+  always @ (posedge z_clk, posedge z_rst)
   if (z_rst) li_ack <= 1'b1;
-  else if (0) li_ack <= 0;
+  else       li_ack <= lm_ack;
 
-  assign lm_vld = zi_vld;
-  assign lm_bus = (0) ? li_bus : zi_bus;
+  assign lm_vld = li_vld ? li_vld : zi_vld;
+  assign lm_bus = li_vld ? li_bus : zi_bus;
   assign zi_ack = li_ack;
 
 end else begin
