@@ -1,0 +1,17 @@
+#!/bin/sh
+
+rm tmp/*
+
+# build zbus testbench
+iverilog -o tmp/sdram_tb.vvp \
+  hdl/rtl/sdram/sdram.v \
+  hdl/rtl/sdram/sdram_controller.v \
+  hdl/rtl/sdram/sdram_rw.v \
+  hdl/bench/sdram/sdram_tb.v \
+  hdl/bench/sdram/mt48lc4m16a2.v
+
+# execute Verilog simulation and the firmware simultaneously
+vvp tmp/sdram_tb.vvp -lxt2
+
+# gtkwave -f test.vcd -a hdl/bench/zbus/zbus.sav
+
