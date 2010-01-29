@@ -42,61 +42,30 @@
 
 
 module hssdrc_addr_path(
-  clk         , 
-  reset       , 
-  sclr        ,
-  //        
-  arb_pre_all ,
-  arb_refr    ,
-  arb_pre     ,
-  arb_act     ,
-  arb_read    ,
-  arb_write   ,
-  arb_lmr     ,
-  arb_rowa    ,
-  arb_cola    ,
-  arb_ba      ,
-  //
-  addr        , 
-  ba          , 
-  cke         , 
-  cs_n        , 
-  ras_n       , 
-  cas_n       , 
-  we_n
-  );
-  
-  input wire clk; 
-  input wire reset; 
-  input wire sclr; 
-
-  //-------------------------------------------------------------------------------------------------- 
+  input wire clk         , 
+  input wire reset       , 
+  input wire sclr        ,
   // interface from output arbiter 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input wire    arb_pre_all  ;
-  input wire    arb_refr     ;
-  input wire    arb_pre      ;
-  input wire    arb_act      ;
-  input wire    arb_read     ;
-  input wire    arb_write    ;
-  input wire    arb_lmr      ;
-  input rowa_t  arb_rowa     ;
-  input cola_t  arb_cola     ;
-  input ba_t    arb_ba       ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire        arb_pre_all ,
+  input  wire        arb_refr    ,
+  input  wire        arb_pre     ,
+  input  wire        arb_act     ,
+  input  wire        arb_read    ,
+  input  wire        arb_write   ,
+  input  wire        arb_lmr     ,
+  input  rowa_t      arb_rowa    ,
+  input  cola_t      arb_cola    ,
+  input  ba_t        arb_ba      ,
   // interface to sdram 
-  //-------------------------------------------------------------------------------------------------- 
+  output sdram_addr_t addr        , 
+  output ba_t         ba          , 
+  output logic        cke         , 
+  output logic        cs_n        , 
+  output logic        ras_n       , 
+  output logic        cas_n       , 
+  output logic        we_n
+);
   
-  output  sdram_addr_t  addr;
-  output  ba_t          ba; 
-  output  logic         cke;
-  output  logic         cs_n;
-  output  logic         ras_n;
-  output  logic         cas_n;
-  output  logic         we_n;
-
   //-------------------------------------------------------------------------------------------------- 
   //
   //--------------------------------------------------------------------------------------------------  

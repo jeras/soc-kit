@@ -154,55 +154,26 @@
 `include "hssdrc_timing.vh"
 
 module hssdrc_access_manager (
-  clk               ,
-  reset             ,
-  sclr              ,
-  //
-  arb_pre_all       , 
-  arb_refr          ,
-  arb_pre           ,
-  arb_act           ,
-  arb_read          ,
-  arb_write         ,
-  arb_ba            ,
-  arb_burst         ,
-  //
-  am_pre_all_enable ,
-  am_refr_enable    ,
-  am_pre_enable     ,
-  am_act_enable     ,
-  am_read_enable    ,
-  am_write_enable  
-  );
-
-  input wire clk;
-  input wire reset;
-  input wire sclr;
-
-  //--------------------------------------------------------------------------------------------------
+  input wire          clk               ,
+  input wire          reset             ,
+  input wire          sclr              ,
   // interface from output arbiter 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input logic         arb_pre_all  ;
-  input logic         arb_refr     ;
-  input logic         arb_pre      ;
-  input logic         arb_act      ;
-  input logic         arb_read     ;
-  input logic         arb_write    ;
-  input ba_t          arb_ba       ;
-  input sdram_burst_t arb_burst    ;
-
-  //--------------------------------------------------------------------------------------------------
+  input logic         arb_pre_all       , 
+  input logic         arb_refr          ,
+  input logic         arb_pre           ,
+  input logic         arb_act           ,
+  input logic         arb_read          ,
+  input logic         arb_write         ,
+  input ba_t          arb_ba            ,
+  input sdram_burst_t arb_burst         ,
   // outputs 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output logic       am_pre_all_enable  ;
-  output logic       am_refr_enable     ;
-  output logic [0:3] am_pre_enable      ;
-  output logic [0:3] am_act_enable      ;
-  output logic [0:3] am_read_enable     ;
-  output logic [0:3] am_write_enable    ;
-
+  output logic        am_pre_all_enable ,
+  output logic        am_refr_enable    ,
+  output logic [0:3]  am_pre_enable     ,
+  output logic [0:3]  am_act_enable     ,
+  output logic [0:3]  am_read_enable    ,
+  output logic [0:3]  am_write_enable  
+);
 
   //-------------------------------------------------------------------------------------------------- 
   // all timings is select using shift register techique. 

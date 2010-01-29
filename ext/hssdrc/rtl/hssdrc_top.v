@@ -41,73 +41,36 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_top (
-  clk           , 
-  reset         , 
-  sclr          , 
-  sys_write     ,
-  sys_read      ,
-  sys_refr      ,
-  sys_rowa      ,
-  sys_cola      ,
-  sys_ba        ,
-  sys_burst     ,
-  sys_chid_i    ,
-  sys_wdata     ,
-  sys_wdatam    ,  
-  sys_ready     ,
-  sys_use_wdata , 
-  sys_vld_rdata ,
-  sys_chid_o    ,
-  sys_rdata     ,
-  dq            , 
-  dqm           , 
-  addr          , 
-  ba            , 
-  cke           , 
-  cs_n          , 
-  ras_n         , 
-  cas_n         , 
-  we_n          
-  );
-
-  input wire clk  ;
-  input wire reset;
-  input wire sclr ;
-
-  //--------------------------------------------------------------------------------------------------
+  input  wire                  clk           , 
+  input  wire                  reset         , 
+  input  wire                  sclr          , 
   // system interface 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input  wire    sys_write     ;      
-  input  wire    sys_read      ;     
-  input  wire    sys_refr      ;     
-  input  rowa_t  sys_rowa      ;     
-  input  cola_t  sys_cola      ;     
-  input  ba_t    sys_ba        ;     
-  input  burst_t sys_burst     ;     
-  input  chid_t  sys_chid_i    ;     
-  input  data_t  sys_wdata     ;     
-  input  datam_t sys_wdatam    ;    
-   
-  output logic   sys_ready     ; 
-  output logic   sys_use_wdata ; 
-  output logic   sys_vld_rdata ; 
-  output chid_t  sys_chid_o    ; 
-  output data_t  sys_rdata     ;
-
-  //--------------------------------------------------------------------------------------------------
+  input  wire                  sys_write     ,
+  input  wire                  sys_read      ,
+  input  wire                  sys_refr      ,
+  input  rowa_t                sys_rowa      ,
+  input  cola_t                sys_cola      ,
+  input  ba_t                  sys_ba        ,
+  input  burst_t               sys_burst     ,
+  input  chid_t                sys_chid_i    ,
+  input  data_t                sys_wdata     ,
+  input  datam_t               sys_wdatam    ,  
+  output logic                 sys_ready     ,
+  output logic                 sys_use_wdata , 
+  output logic                 sys_vld_rdata ,
+  output chid_t                sys_chid_o    ,
+  output data_t                sys_rdata     ,
   // sdram interface 
-  //--------------------------------------------------------------------------------------------------  
-
-  inout   wire [pDataBits-1:0] dq;
-  output  datam_t       dqm;  
-  output  sdram_addr_t  addr;
-  output  ba_t          ba; 
-  output  logic         cke;
-  output  logic         cs_n;
-  output  logic         ras_n;
-  output  logic         cas_n;
-  output  logic         we_n;
+  inout   wire [pDataBits-1:0] dq            , 
+  output  datam_t              dqm           , 
+  output  sdram_addr_t         addr          , 
+  output  ba_t                 ba            , 
+  output  logic                cke           , 
+  output  logic                cs_n          , 
+  output  logic                ras_n         , 
+  output  logic                cas_n         , 
+  output  logic                we_n          
+);
 
   //--------------------------------------------------------------------------------------------------  
   // internal signals 

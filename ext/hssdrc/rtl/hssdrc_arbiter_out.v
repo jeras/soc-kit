@@ -41,185 +41,50 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_arbiter_out (
-  clk                , 
-  reset              , 
-  sclr               ,                       
-  //
-  dec0_pre_all       , 
-  dec0_refr          , 
-  dec0_pre           , 
-  dec0_act           , 
-  dec0_read          , 
-  dec0_write         , 
-  dec0_pre_all_enable, 
-  dec0_refr_enable   , 
-  dec0_pre_enable    , 
-  dec0_act_enable    , 
-  dec0_read_enable   , 
-  dec0_write_enable  , 
-  dec0_locked        , 
-  dec0_last          , 
-  dec0_rowa          , 
-  dec0_cola          , 
-  dec0_ba            , 
-  dec0_chid          , 
-  dec0_burst         , 
-  //
-  dec1_pre_all       , 
-  dec1_refr          , 
-  dec1_pre           , 
-  dec1_act           , 
-  dec1_read          , 
-  dec1_write         , 
-  dec1_pre_all_enable, 
-  dec1_refr_enable   , 
-  dec1_pre_enable    , 
-  dec1_act_enable    , 
-  dec1_read_enable   , 
-  dec1_write_enable  , 
-  dec1_locked        , 
-  dec1_last          , 
-  dec1_rowa          , 
-  dec1_cola          , 
-  dec1_ba            , 
-  dec1_chid          , 
-  dec1_burst         , 
-  //
-  dec2_pre_all       , 
-  dec2_refr          , 
-  dec2_pre           , 
-  dec2_act           , 
-  dec2_read          , 
-  dec2_write         , 
-  dec2_pre_all_enable, 
-  dec2_refr_enable   , 
-  dec2_pre_enable    , 
-  dec2_act_enable    , 
-  dec2_read_enable   , 
-  dec2_write_enable  , 
-  dec2_locked        , 
-  dec2_last          , 
-  dec2_rowa          , 
-  dec2_cola          , 
-  dec2_ba            , 
-  dec2_chid          , 
-  dec2_burst         , 
-  //
-  am_pre_all_enable  , 
-  am_refr_enable     ,
-  am_pre_enable      ,
-  am_act_enable      ,
-  am_read_enable     ,
-  am_write_enable    ,
-  //                 
-  arb_pre_all        ,
-  arb_refr           ,
-  arb_pre            ,
-  arb_act            ,
-  arb_read           ,
-  arb_write          ,
-  arb_rowa           ,
-  arb_cola           ,
-  arb_ba             ,
-  arb_chid           ,
-  arb_burst    
-  );
-  
-  input wire clk  ;
-  input wire reset;
-  input wire sclr ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input wire           clk                , 
+  input wire           reset              , 
+  input wire           sclr               ,                       
   // interface from sequence decoders 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input  wire           dec0_pre_all       ;   
-  input  wire           dec0_refr          ;   
-  input  wire           dec0_pre           ;   
-  input  wire           dec0_act           ;   
-  input  wire           dec0_read          ;   
-  input  wire           dec0_write         ;   
-  output logic          dec0_pre_all_enable;
-  output logic          dec0_refr_enable   ;
-  output logic          dec0_pre_enable    ;
-  output logic          dec0_act_enable    ;
-  output logic          dec0_read_enable   ;
-  output logic          dec0_write_enable  ;
-  input  wire           dec0_locked        ;     
-  input  wire           dec0_last          ;     
-  input  rowa_t         dec0_rowa          ;     
-  input  cola_t         dec0_cola          ;     
-  input  ba_t           dec0_ba            ;     
-  input  chid_t         dec0_chid          ;     
-  input  sdram_burst_t  dec0_burst         ; 
-  //
-  input  wire           dec1_pre_all       ;   
-  input  wire           dec1_refr          ;   
-  input  wire           dec1_pre           ;   
-  input  wire           dec1_act           ;   
-  input  wire           dec1_read          ;   
-  input  wire           dec1_write         ;   
-  output logic          dec1_pre_all_enable;
-  output logic          dec1_refr_enable   ;
-  output logic          dec1_pre_enable    ;
-  output logic          dec1_act_enable    ;
-  output logic          dec1_read_enable   ;
-  output logic          dec1_write_enable  ;
-  input  wire           dec1_locked        ;     
-  input  wire           dec1_last          ;     
-  input  rowa_t         dec1_rowa          ;     
-  input  cola_t         dec1_cola          ;     
-  input  ba_t           dec1_ba            ;     
-  input  chid_t         dec1_chid          ;     
-  input  sdram_burst_t  dec1_burst         ;
-  //
-  input  wire           dec2_pre_all       ;   
-  input  wire           dec2_refr          ;   
-  input  wire           dec2_pre           ;   
-  input  wire           dec2_act           ;   
-  input  wire           dec2_read          ;   
-  input  wire           dec2_write         ;   
-  output logic          dec2_pre_all_enable;
-  output logic          dec2_refr_enable   ;
-  output logic          dec2_pre_enable    ;
-  output logic          dec2_act_enable    ;
-  output logic          dec2_read_enable   ;
-  output logic          dec2_write_enable  ;
-  input  wire           dec2_locked        ;     
-  input  wire           dec2_last          ;     
-  input  rowa_t         dec2_rowa          ;     
-  input  cola_t         dec2_cola          ;     
-  input  ba_t           dec2_ba            ;     
-  input  chid_t         dec2_chid          ;     
-  input  sdram_burst_t  dec2_burst         ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire          dec2_pre_all       , dec1_pre_all       , dec0_pre_all       , 
+  input  wire          dec2_refr          , dec1_refr          , dec0_refr          , 
+  input  wire          dec2_pre           , dec1_pre           , dec0_pre           , 
+  input  wire          dec2_act           , dec1_act           , dec0_act           , 
+  input  wire          dec2_read          , dec1_read          , dec0_read          , 
+  input  wire          dec2_write         , dec1_write         , dec0_write         , 
+  output logic         dec2_pre_all_enable, dec1_pre_all_enable, dec0_pre_all_enable, 
+  output logic         dec2_refr_enable   , dec1_refr_enable   , dec0_refr_enable   , 
+  output logic         dec2_pre_enable    , dec1_pre_enable    , dec0_pre_enable    , 
+  output logic         dec2_act_enable    , dec1_act_enable    , dec0_act_enable    , 
+  output logic         dec2_read_enable   , dec1_read_enable   , dec0_read_enable   , 
+  output logic         dec2_write_enable  , dec1_write_enable  , dec0_write_enable  , 
+  input  wire          dec2_locked        , dec1_locked        , dec0_locked        , 
+  input  wire          dec2_last          , dec1_last          , dec0_last          , 
+  input  rowa_t        dec2_rowa          , dec1_rowa          , dec0_rowa          , 
+  input  cola_t        dec2_cola          , dec1_cola          , dec0_cola          , 
+  input  ba_t          dec2_ba            , dec1_ba            , dec0_ba            , 
+  input  chid_t        dec2_chid          , dec1_chid          , dec0_chid          , 
+  input  sdram_burst_t dec2_burst         , dec1_burst         , dec0_burst         , 
   // interface from access manager 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input wire       am_pre_all_enable  ;
-  input wire       am_refr_enable     ;
-  input wire [0:3] am_pre_enable      ;
-  input wire [0:3] am_act_enable      ;
-  input wire [0:3] am_read_enable     ;
-  input wire [0:3] am_write_enable    ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input wire           am_pre_all_enable  , 
+  input wire           am_refr_enable     ,
+  input wire [0:3]     am_pre_enable      ,
+  input wire [0:3]     am_act_enable      ,
+  input wire [0:3]     am_read_enable     ,
+  input wire [0:3]     am_write_enable    ,
   // interface to multiplexer 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output logic         arb_pre_all  ;
-  output logic         arb_refr     ;
-  output logic         arb_pre      ;
-  output logic         arb_act      ;
-  output logic         arb_read     ;
-  output logic         arb_write    ;
-  output rowa_t        arb_rowa     ;
-  output cola_t        arb_cola     ;
-  output ba_t          arb_ba       ;
-  output chid_t        arb_chid     ;
-  output sdram_burst_t arb_burst    ;
-
+  output logic         arb_pre_all        ,
+  output logic         arb_refr           ,
+  output logic         arb_pre            ,
+  output logic         arb_act            ,
+  output logic         arb_read           ,
+  output logic         arb_write          ,
+  output rowa_t        arb_rowa           ,
+  output cola_t        arb_cola           ,
+  output ba_t          arb_ba             ,
+  output chid_t        arb_chid           ,
+  output sdram_burst_t arb_burst    
+);
+  
   //-------------------------------------------------------------------------------------------------- 
   // 
   //-------------------------------------------------------------------------------------------------- 

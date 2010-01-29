@@ -42,21 +42,13 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_refr_counter (
-  clk     ,
-  reset   ,
-  sclr    ,
-  ack     ,
-  hi_req  ,
-  low_req
-  );
-
-  input   wire  clk     ;
-  input   wire  reset   ;
-  input   wire  sclr    ;
-
-  input   wire  ack     ; 
-  output  logic hi_req  ;
-  output  logic low_req ; 
+  input   wire  clk     ,
+  input   wire  reset   ,
+  input   wire  sclr    ,
+  input   wire  ack     ,
+  output  logic hi_req  ,
+  output  logic low_req
+);
 
   //-------------------------------------------------------------------------------------------------- 
   //

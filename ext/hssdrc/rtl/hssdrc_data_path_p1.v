@@ -42,56 +42,25 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_data_path_p1 (
-  clk           , 
-  reset         , 
-  sclr          , 
-  //
-  sys_wdata     ,
-  sys_wdatam    ,
-  sys_use_wdata ,
-  sys_vld_rdata , 
-  sys_chid_o    ,
-  sys_rdata     ,
-  //            
-  arb_read      ,
-  arb_write     ,
-  arb_chid      ,
-  arb_burst     ,
-  //            
-  dq            ,
-  dqm     
-  );
-
-  input wire clk; 
-  input wire reset; 
-  input wire sclr; 
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire                     clk           , 
+  input  wire                     reset         , 
+  input  wire                     sclr          , 
   // system data interface 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input   data_t  sys_wdata     ; 
-  input   datam_t sys_wdatam    ;   
-  output  logic   sys_use_wdata ; 
-  output  logic   sys_vld_rdata ;
-  output  chid_t  sys_chid_o    ;
-  output  data_t  sys_rdata     ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  data_t                   sys_wdata     ,
+  input  datam_t                  sys_wdatam    ,
+  output logic                    sys_use_wdata ,
+  output logic                    sys_vld_rdata , 
+  output chid_t                   sys_chid_o    ,
+  output data_t                   sys_rdata     ,
   // interface from arbiter throw multiplexer 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input wire          arb_read  ;
-  input wire          arb_write ;
-  input chid_t        arb_chid  ;
-  input sdram_burst_t arb_burst ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire                     arb_read      ,
+  input  wire                     arb_write     ,
+  input  chid_t                   arb_chid      ,
+  input  sdram_burst_t            arb_burst     ,
   // interface sdram chip 
-  //-------------------------------------------------------------------------------------------------- 
-
-  inout  wire   [pDataBits-1  :0] dq;
-  output logic  [pDatamBits-1 :0] dqm;
+  inout  wire   [pDataBits -1:0] dq            ,
+  output logic  [pDatamBits-1:0] dqm     
+);
 
   //-------------------------------------------------------------------------------------------------- 
   // Mask paramters count via pBL, pCL parameters only for clarify. 

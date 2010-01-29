@@ -42,25 +42,15 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_init_state (
-  clk           , 
-  reset         , 
-  sclr          , 
-  init_done     ,
-  pre_all       ,
-  refr          ,
-  lmr           ,
-  rowa          
+  input  wire   clk           , 
+  input  wire   reset         , 
+  input  wire   sclr          , 
+  output logic  init_done     ,
+  output logic  pre_all       ,
+  output logic  refr          ,
+  output logic  lmr           ,
+  output rowa_t rowa          
   );
-
-  input wire clk  ;
-  input wire reset;
-  input wire sclr ;
-
-  output logic  init_done;  
-  output logic  pre_all  ;
-  output logic  refr     ;
-  output logic  lmr      ;
-  output rowa_t rowa     ; 
 
   assign rowa = cInitLmrValue;
 

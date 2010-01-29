@@ -42,114 +42,34 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_arbiter_in (
-  clk               ,
-  reset             ,
-  sclr              ,
-  //
-  sys_write         ,
-  sys_read          ,
-  sys_refr          ,
-  sys_rowa          ,
-  sys_cola          ,
-  sys_ba            ,
-  sys_burst         ,
-  sys_chid_i        ,
-  sys_ready         ,
-  //
-  refr_cnt_ack      ,
-  refr_cnt_hi_req   ,
-  refr_cnt_low_req  ,
-  //
-  dec0_write        ,
-  dec0_read         ,
-  dec0_refr         ,
-  dec0_rowa         ,
-  dec0_cola         ,
-  dec0_ba           ,
-  dec0_burst        ,
-  dec0_chid         ,
-  dec0_ready        ,
-  //                        
-  dec1_write        ,
-  dec1_read         ,
-  dec1_refr         ,
-  dec1_rowa         ,
-  dec1_cola         ,
-  dec1_ba           ,
-  dec1_burst        ,
-  dec1_chid         ,
-  dec1_ready        ,
-  //                    
-  dec2_write        ,
-  dec2_read         ,
-  dec2_refr         ,
-  dec2_rowa         ,
-  dec2_cola         ,
-  dec2_ba           ,
-  dec2_burst        ,
-  dec2_chid         ,
-  dec2_ready     
-  );
-
-  input   wire  clk   ; 
-  input   wire  reset ; 
-  input   wire  sclr  ; 
-
-  //-------------------------------------------------------------------------------------------------- 
+  input   wire    clk               ,
+  input   wire    reset             ,
+  input   wire    sclr              ,
   // interface from refresh cycle generator 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output  logic refr_cnt_ack      ;
-  input   wire  refr_cnt_hi_req   ;
-  input   wire  refr_cnt_low_req  ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  output  logic   refr_cnt_ack      ,
+  input   wire    refr_cnt_hi_req   ,
+  input   wire    refr_cnt_low_req  ,
   // interface from system 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input   wire    sys_write  ;
-  input   wire    sys_read   ; 
-  input   wire    sys_refr   ; 
-  input   rowa_t  sys_rowa   ; 
-  input   cola_t  sys_cola   ; 
-  input   ba_t    sys_ba     ;   
-  input   burst_t sys_burst  ;
-  input   chid_t  sys_chid_i ;
-  output  logic   sys_ready  ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input   wire    sys_write         ,
+  input   wire    sys_read          ,
+  input   wire    sys_refr          ,
+  input   rowa_t  sys_rowa          ,
+  input   cola_t  sys_cola          ,
+  input   ba_t    sys_ba            ,
+  input   burst_t sys_burst         ,
+  input   chid_t  sys_chid_i        ,
+  output  logic   sys_ready         ,
   // interface to sdram sequence decoders
-  //-------------------------------------------------------------------------------------------------- 
-
-  output  logic   dec0_write ; 
-  output  logic   dec0_read  ; 
-  output  logic   dec0_refr  ; 
-  output  rowa_t  dec0_rowa  ; 
-  output  cola_t  dec0_cola  ; 
-  output  ba_t    dec0_ba    ;   
-  output  burst_t dec0_burst ;
-  output  chid_t  dec0_chid  ; 
-  input   wire    dec0_ready ;                 
-  //
-  output  logic   dec1_write ; 
-  output  logic   dec1_read  ; 
-  output  logic   dec1_refr  ; 
-  output  rowa_t  dec1_rowa  ; 
-  output  cola_t  dec1_cola  ; 
-  output  ba_t    dec1_ba    ;   
-  output  burst_t dec1_burst ;
-  output  chid_t  dec1_chid  ; 
-  input   wire    dec1_ready ;                 
-  //
-  output  logic   dec2_write ; 
-  output  logic   dec2_read  ; 
-  output  logic   dec2_refr  ; 
-  output  rowa_t  dec2_rowa  ; 
-  output  cola_t  dec2_cola  ; 
-  output  ba_t    dec2_ba    ;   
-  output  burst_t dec2_burst ;
-  output  chid_t  dec2_chid  ; 
-  input   wire    dec2_ready ;                 
+  output logic   dec2_write, dec1_write, dec0_write,
+  output logic   dec2_read , dec1_read , dec0_read ,
+  output logic   dec2_refr , dec1_refr , dec0_refr ,
+  output rowa_t  dec2_rowa , dec1_rowa , dec0_rowa ,
+  output cola_t  dec2_cola , dec1_cola , dec0_cola ,
+  output ba_t    dec2_ba   , dec1_ba   , dec0_ba   ,
+  output burst_t dec2_burst, dec1_burst, dec0_burst,
+  output chid_t  dec2_chid , dec1_chid , dec0_chid ,
+  input  wire    dec2_ready, dec1_ready, dec0_ready
+);
 
   //-------------------------------------------------------------------------------------------------- 
   // 

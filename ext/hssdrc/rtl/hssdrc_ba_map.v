@@ -42,43 +42,20 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_ba_map (
-  clk         , 
-  reset       ,
-  sclr        ,  
-  //
-  update      ,
-  clear       ,
-  ba          ,
-  rowa        ,
-  //
-  pre_act_rw  ,
-  act_rw      ,
-  rw          ,
-  all_close 
-  
-  );
-
-  input wire clk    ;
-  input wire reset  ;
-  input wire sclr   ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire    clk         , 
+  input  wire    reset       ,
+  input  wire    sclr        ,  
   // interface from sequence decoders 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input   wire    update      ;
-  input   wire    clear       ;
-  input   ba_t    ba          ;
-  input   rowa_t  rowa        ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire    update      ,
+  input  wire    clear       ,
+  input  ba_t    ba          ,
+  input  rowa_t  rowa        ,
   // interface to sequence decoders 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output  logic   pre_act_rw  ; 
-  output  logic   act_rw      ; 
-  output  logic   rw          ; 
-  output  logic   all_close   ;  
+  output logic   pre_act_rw  ,
+  output logic   act_rw      ,
+  output logic   rw          ,
+  output logic   all_close
+);
 
   //-------------------------------------------------------------------------------------------------- 
   // 

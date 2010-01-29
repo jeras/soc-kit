@@ -41,225 +41,50 @@
 `include "hssdrc_define.vh"
 
 module hssdrc_decoder (
-  clk               ,
-  reset             ,
-  sclr              ,
-  //
-  ba_map_update     ,
-  ba_map_clear      ,
-  ba_map_ba         ,
-  ba_map_rowa       ,
-  ba_map_pre_act_rw ,
-  ba_map_act_rw     ,
-  ba_map_rw         ,
-  ba_map_all_close  ,
-  //
-  arb0_write        ,
-  arb0_read         ,
-  arb0_refr         ,
-  arb0_rowa         ,
-  arb0_cola         ,
-  arb0_ba           ,
-  arb0_burst        ,
-  arb0_chid         ,
-  arb0_ready        ,
-  //
-  arb1_write        ,
-  arb1_read         ,
-  arb1_refr         ,
-  arb1_rowa         ,
-  arb1_cola         ,
-  arb1_ba           ,
-  arb1_burst        ,
-  arb1_chid         ,
-  arb1_ready        ,
-  //
-  arb2_write        ,
-  arb2_read         ,
-  arb2_refr         ,
-  arb2_rowa         ,
-  arb2_cola         ,
-  arb2_ba           ,
-  arb2_burst        ,
-  arb2_chid         ,
-  arb2_ready        ,
-  //
-  dec0_pre_all        ,
-  dec0_refr           ,
-  dec0_pre            ,
-  dec0_act            ,
-  dec0_read           ,
-  dec0_write          ,
-  dec0_pre_all_enable ,
-  dec0_refr_enable    ,
-  dec0_pre_enable     ,
-  dec0_act_enable     ,
-  dec0_read_enable    ,
-  dec0_write_enable   ,
-  dec0_locked         ,
-  dec0_last           ,
-  dec0_rowa           ,
-  dec0_cola           ,
-  dec0_ba             ,
-  dec0_chid           ,
-  dec0_burst          ,
-  //
-  dec1_pre_all        ,
-  dec1_refr           ,
-  dec1_pre            ,
-  dec1_act            ,
-  dec1_read           ,
-  dec1_write          ,
-  dec1_pre_all_enable ,
-  dec1_refr_enable    ,
-  dec1_pre_enable     ,
-  dec1_act_enable     ,
-  dec1_read_enable    ,
-  dec1_write_enable   ,
-  dec1_locked         ,
-  dec1_last           ,
-  dec1_rowa           ,
-  dec1_cola           ,
-  dec1_ba             ,
-  dec1_chid           ,
-  dec1_burst          ,
-  //
-  dec2_pre_all        ,
-  dec2_refr           ,
-  dec2_pre            ,
-  dec2_act            ,
-  dec2_read           ,
-  dec2_write          ,
-  dec2_pre_all_enable ,
-  dec2_refr_enable    ,
-  dec2_pre_enable     ,
-  dec2_act_enable     ,
-  dec2_read_enable    ,
-  dec2_write_enable   ,
-  dec2_locked         ,
-  dec2_last           ,
-  dec2_rowa           ,
-  dec2_cola           ,
-  dec2_ba             ,
-  dec2_chid           ,
-  dec2_burst                                
-  );
-
-  input  wire   clk  ;
-  input  wire   reset;
-  input  wire   sclr ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire   clk               ,
+  input  wire   reset             ,
+  input  wire   sclr              ,
   // bank map interface 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output wire   ba_map_update    ;    
-  output wire   ba_map_clear     ;     
-  output ba_t   ba_map_ba        ;        
-  output rowa_t ba_map_rowa      ;                           
-  input  wire   ba_map_pre_act_rw;
-  input  wire   ba_map_act_rw    ;    
-  input  wire   ba_map_rw        ;        
-  input  wire   ba_map_all_close ; 
-
-  //-------------------------------------------------------------------------------------------------- 
+  output wire   ba_map_update     ,
+  output wire   ba_map_clear      ,
+  output ba_t   ba_map_ba         ,
+  output rowa_t ba_map_rowa       ,
+  input  wire   ba_map_pre_act_rw ,
+  input  wire   ba_map_act_rw     ,
+  input  wire   ba_map_rw         ,
+  input  wire   ba_map_all_close  ,
   // interface from input arbiter 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input   logic   arb0_write ; 
-  input   logic   arb0_read  ; 
-  input   logic   arb0_refr  ; 
-  input   rowa_t  arb0_rowa  ; 
-  input   cola_t  arb0_cola  ; 
-  input   ba_t    arb0_ba    ;   
-  input   burst_t arb0_burst ;
-  input   chid_t  arb0_chid  ; 
-  output  wire    arb0_ready ;
-  //
-  input   logic   arb1_write ; 
-  input   logic   arb1_read  ; 
-  input   logic   arb1_refr  ; 
-  input   rowa_t  arb1_rowa  ; 
-  input   cola_t  arb1_cola  ; 
-  input   ba_t    arb1_ba    ;   
-  input   burst_t arb1_burst ;
-  input   chid_t  arb1_chid  ; 
-  output  wire    arb1_ready ;
-  //
-  input   logic   arb2_write ; 
-  input   logic   arb2_read  ; 
-  input   logic   arb2_refr  ; 
-  input   rowa_t  arb2_rowa  ; 
-  input   cola_t  arb2_cola  ; 
-  input   ba_t    arb2_ba    ;   
-  input   burst_t arb2_burst ;
-  input   chid_t  arb2_chid  ; 
-  output  wire    arb2_ready ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input   logic   arb2_write, arb1_write, arb0_write,
+  input   logic   arb2_read , arb1_read , arb0_read ,
+  input   logic   arb2_refr , arb1_refr , arb0_refr ,
+  input   rowa_t  arb2_rowa , arb1_rowa , arb0_rowa ,
+  input   cola_t  arb2_cola , arb1_cola , arb0_cola ,
+  input   ba_t    arb2_ba   , arb1_ba   , arb0_ba   ,
+  input   burst_t arb2_burst, arb1_burst, arb0_burst,
+  input   chid_t  arb2_chid , arb1_chid , arb0_chid ,
+  output  wire    arb2_ready, arb1_ready, arb0_ready,
   // inteface to output arbiter 
-  //-------------------------------------------------------------------------------------------------- 
+  output logic         dec2_pre_all       , dec1_pre_all       , dec0_pre_all       ,
+  output logic         dec2_refr          , dec1_refr          , dec0_refr          ,
+  output logic         dec2_pre           , dec1_pre           , dec0_pre           ,
+  output logic         dec2_act           , dec1_act           , dec0_act           ,
+  output logic         dec2_read          , dec1_read          , dec0_read          ,
+  output logic         dec2_write         , dec1_write         , dec0_write         ,
+  input  wire          dec2_pre_all_enable, dec1_pre_all_enable, dec0_pre_all_enable,
+  input  wire          dec2_refr_enable   , dec1_refr_enable   , dec0_refr_enable   ,
+  input  wire          dec2_pre_enable    , dec1_pre_enable    , dec0_pre_enable    ,
+  input  wire          dec2_act_enable    , dec1_act_enable    , dec0_act_enable    ,
+  input  wire          dec2_read_enable   , dec1_read_enable   , dec0_read_enable   ,
+  input  wire          dec2_write_enable  , dec1_write_enable  , dec0_write_enable  ,
+  output logic         dec2_locked        , dec1_locked        , dec0_locked        ,
+  output logic         dec2_last          , dec1_last          , dec0_last          ,
+  output rowa_t        dec2_rowa          , dec1_rowa          , dec0_rowa          ,
+  output cola_t        dec2_cola          , dec1_cola          , dec0_cola          ,
+  output ba_t          dec2_ba            , dec1_ba            , dec0_ba            ,
+  output chid_t        dec2_chid          , dec1_chid          , dec0_chid          ,
+  output sdram_burst_t dec2_burst         , dec1_burst         , dec0_burst
+);
 
-  output logic         dec0_pre_all       ;   
-  output logic         dec0_refr          ;   
-  output logic         dec0_pre           ;   
-  output logic         dec0_act           ;   
-  output logic         dec0_read          ;   
-  output logic         dec0_write         ;   
-  input  wire          dec0_pre_all_enable;
-  input  wire          dec0_refr_enable   ;
-  input  wire          dec0_pre_enable    ;
-  input  wire          dec0_act_enable    ;
-  input  wire          dec0_read_enable   ;
-  input  wire          dec0_write_enable  ;
-  output logic         dec0_locked        ;     
-  output logic         dec0_last          ;     
-  output rowa_t        dec0_rowa          ;     
-  output cola_t        dec0_cola          ;     
-  output ba_t          dec0_ba            ;     
-  output chid_t        dec0_chid          ;     
-  output sdram_burst_t dec0_burst         ; 
-  //
-  output logic         dec1_pre_all       ;   
-  output logic         dec1_refr          ;   
-  output logic         dec1_pre           ;   
-  output logic         dec1_act           ;   
-  output logic         dec1_read          ;   
-  output logic         dec1_write         ;   
-  input  wire          dec1_pre_all_enable;
-  input  wire          dec1_refr_enable   ;
-  input  wire          dec1_pre_enable    ;
-  input  wire          dec1_act_enable    ;
-  input  wire          dec1_read_enable   ;
-  input  wire          dec1_write_enable  ;
-  output logic         dec1_locked        ;     
-  output logic         dec1_last          ;     
-  output rowa_t        dec1_rowa          ;     
-  output cola_t        dec1_cola          ;     
-  output ba_t          dec1_ba            ;     
-  output chid_t        dec1_chid          ;     
-  output sdram_burst_t dec1_burst         ; 
-  //
-  output logic         dec2_pre_all       ;   
-  output logic         dec2_refr          ;   
-  output logic         dec2_pre           ;   
-  output logic         dec2_act           ;   
-  output logic         dec2_read          ;   
-  output logic         dec2_write         ;   
-  input  wire          dec2_pre_all_enable;
-  input  wire          dec2_refr_enable   ;
-  input  wire          dec2_pre_enable    ;
-  input  wire          dec2_act_enable    ;
-  input  wire          dec2_read_enable   ;
-  input  wire          dec2_write_enable  ;
-  output logic         dec2_locked        ;     
-  output logic         dec2_last          ;     
-  output rowa_t        dec2_rowa          ;     
-  output cola_t        dec2_cola          ;     
-  output ba_t          dec2_ba            ;     
-  output chid_t        dec2_chid          ;     
-  output sdram_burst_t dec2_burst         ; 
-   
   //-------------------------------------------------------------------------------------------------- 
   //
   //-------------------------------------------------------------------------------------------------- 

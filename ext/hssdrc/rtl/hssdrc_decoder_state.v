@@ -43,109 +43,52 @@
 
 
 module hssdrc_decoder_state (
-  clk               ,
-  reset             ,
-  sclr              ,
-  //
-  ba_map_update     ,
-  ba_map_clear      ,
-  ba_map_pre_act_rw ,
-  ba_map_act_rw     ,
-  ba_map_rw         ,
-  ba_map_all_close  ,
-  //
-  arb_write         ,
-  arb_read          ,
-  arb_refr          ,
-  arb_rowa          ,
-  arb_cola          ,
-  arb_ba            ,
-  arb_burst         ,
-  arb_chid          ,
-  arb_ready         ,
-  //
-  dec_pre_all       ,
-  dec_refr          ,
-  dec_pre           ,
-  dec_act           ,
-  dec_read          ,
-  dec_write         ,  
-  //
-  dec_pre_all_enable,
-  dec_refr_enable   ,
-  dec_pre_enable    ,
-  dec_act_enable    ,
-  dec_read_enable   ,
-  dec_write_enable  ,
-  //
-  dec_locked        ,
-  dec_last          ,
-  //
-  dec_rowa          ,
-  dec_cola          ,
-  dec_ba            ,
-  dec_chid          ,
-  //
-  dec_burst
-  );
-
-  input   wire  clk  ;
-  input   wire  reset;
-  input   wire  sclr ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire          clk               ,
+  input  wire          reset             ,
+  input  wire          sclr              ,
   // bank map interface 
-  //-------------------------------------------------------------------------------------------------- 
-
-  output  logic ba_map_update     ;
-  output  logic ba_map_clear      ;
-  input   wire  ba_map_pre_act_rw ;
-  input   wire  ba_map_act_rw     ;
-  input   wire  ba_map_rw         ;
-  input   wire  ba_map_all_close  ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  output logic         ba_map_update     ,
+  output logic         ba_map_clear      ,
+  input  wire          ba_map_pre_act_rw ,
+  input  wire          ba_map_act_rw     ,
+  input  wire          ba_map_rw         ,
+  input  wire          ba_map_all_close  ,
   // interface from input arbiter 
-  //-------------------------------------------------------------------------------------------------- 
-
-  input   wire    arb_write ;
-  input   wire    arb_read  ;
-  input   wire    arb_refr  ;
-  input   rowa_t  arb_rowa  ;
-  input   cola_t  arb_cola  ;
-  input   ba_t    arb_ba    ;  
-  input   burst_t arb_burst ;
-  input   chid_t  arb_chid  ;
-  output  logic   arb_ready ;
-
-  //-------------------------------------------------------------------------------------------------- 
+  input  wire          arb_write         ,
+  input  wire          arb_read          ,
+  input  wire          arb_refr          ,
+  input  rowa_t        arb_rowa          ,
+  input  cola_t        arb_cola          ,
+  input  ba_t          arb_ba            ,
+  input  burst_t       arb_burst         ,
+  input  chid_t        arb_chid          ,
+  output logic         arb_ready         ,
   // inteface to output arbiter
-  //-------------------------------------------------------------------------------------------------- 
-
   // logical commands 
-  output logic          dec_pre_all       ;   
-  output logic          dec_refr          ;   
-  output logic          dec_pre           ;   
-  output logic          dec_act           ;   
-  output logic          dec_read          ;   
-  output logic          dec_write         ;   
+  output logic         dec_pre_all       ,
+  output logic         dec_refr          ,
+  output logic         dec_pre           ,
+  output logic         dec_act           ,
+  output logic         dec_read          ,
+  output logic         dec_write         ,  
   // logical commands en
-  input  wire          dec_pre_all_enable ;
-  input  wire          dec_refr_enable    ;
-  input  wire          dec_pre_enable     ;
-  input  wire          dec_act_enable     ;
-  input  wire          dec_read_enable    ;
-  input  wire          dec_write_enable   ;
+  input  wire          dec_pre_all_enable,
+  input  wire          dec_refr_enable   ,
+  input  wire          dec_pre_enable    ,
+  input  wire          dec_act_enable    ,
+  input  wire          dec_read_enable   ,
+  input  wire          dec_write_enable  ,
   // addititional signal                  
-  output logic         dec_locked         ;     
-  output logic         dec_last           ;     
-  // control path                         
-  output rowa_t        dec_rowa           ;     
-  output cola_t        dec_cola           ;     
-  output ba_t          dec_ba             ;     
-  output chid_t        dec_chid           ;     
-  //                                      
-  output sdram_burst_t dec_burst          ; 
+  output logic         dec_locked        ,
+  output logic         dec_last          ,
+  // control path      
+  output rowa_t        dec_rowa          ,
+  output cola_t        dec_cola          ,
+  output ba_t          dec_ba            ,
+  output chid_t        dec_chid          ,
+  //
+  output sdram_burst_t dec_burst
+);
 
   //-------------------------------------------------------------------------------------------------- 
   //
