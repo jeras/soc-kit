@@ -38,10 +38,15 @@
 
 `include "hssdrc_timescale.vh"  
 
-`include "hssdrc_timing.vh"
-`include "hssdrc_define.vh"
-
-module hssdrc_refr_counter (
+module hssdrc_refr_counter #(
+  // implementation
+  parameter REFR_LOW_ENABLE = 1,
+  parameter REFR_HI_ENABLE  = 1,
+  // timing
+  parameter cRefCounterMaxTime          = 2,
+  parameter cRefrWindowLowPriorityTime  = 2,
+  parameter cRefrWindowHighPriorityTime = 2
+)(
   input   wire  clk     ,
   input   wire  reset   ,
   input   wire  sclr    ,
@@ -54,17 +59,14 @@ module hssdrc_refr_counter (
   //
   //-------------------------------------------------------------------------------------------------- 
 
-  localparam cCntWidth = clogb2(cRefCounterMaxTime);
-
-  //-------------------------------------------------------------------------------------------------- 
-  //
-  //-------------------------------------------------------------------------------------------------- 
+  //localparam cCntWidth = clogb2(cRefCounterMaxTime);
+  localparam cCntWidth = $clog2(cRefCounterMaxTime);
 
   logic [cCntWidth-1 : 0] cnt; 
 
+  //-------------------------------------------------------------------------------------------------- 
   //
-  //
-  //
+  //-------------------------------------------------------------------------------------------------- 
 
   always_ff @(posedge clk or posedge reset) begin : refresh_interval_counter 
     if (reset)            
@@ -79,12 +81,8 @@ module hssdrc_refr_counter (
   //
   //--------------------------------------------------------------------------------------------------  
 
-`ifdef HSSDRC_REFR_LOW_DISABLE  
+generate if (REFR_LOW_ENABLE) begin
 
-  assign low_req = 1'b0;
-
-`else 
-  
   always_ff @(posedge clk or posedge reset) begin : low_priopity_refresh_request_set
     if (reset)      
       low_req <= 1'b0; 
@@ -94,17 +92,17 @@ module hssdrc_refr_counter (
       low_req <= 1'b1; 
   end 
 
-`endif 
+end else begin
 
+  assign low_req = 1'b0;
+
+end endgenerate
+  
   //-------------------------------------------------------------------------------------------------- 
   //
   //--------------------------------------------------------------------------------------------------  
 
-`ifdef HSSDRC_REFR_HI_DISABLE
-
-  assign hi_req = 1'b0; 
-
-`else 
+generate if (REFR_HI_ENABLE) begin
 
   always_ff @(posedge clk or posedge reset) begin : high_priority_refresh_request_set 
     if (reset)
@@ -115,9 +113,11 @@ module hssdrc_refr_counter (
       hi_req <= 1'b1;
   end 
 
-`endif 
+end else begin
 
-  //
-  //
-  //
+  assign hi_req = 1'b0; 
+
+end endgenerate
+
+
 endmodule 

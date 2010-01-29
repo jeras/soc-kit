@@ -43,6 +43,16 @@
   //`define HSSDRC_DQ_PIPELINE              // uncomment when need dq data register output 
   //`define HSSDRC_REFR_HI_DISABLE          // uncomment when not need high priority refresh logic
   //`define HSSDRC_REFR_LOW_DISABLE         // uncomment when not need low  priority refresh logic
+  `ifdef HSSDRC_REFR_LOW_DISABLE  
+  `define HSSDRC_REFR_LOW_ENABLE 0
+  `else
+  `define HSSDRC_REFR_LOW_ENABLE 1
+  `endif
+  `ifdef HSSDRC_REFR_HI_DISABLE  
+  `define HSSDRC_REFR_HI_ENABLE  0
+  `else
+  `define HSSDRC_REFR_HI_ENABLE  1
+  `endif
   //----------------------------------------------------------------------------------
   // default    : controller used use_wdata signal with register output type
   // optionaly  : controller can use combinative use_wdata signal which set 1 cycle early 
