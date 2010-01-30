@@ -12,7 +12,7 @@ if {$debug} {
 #
 #set used project dir 
 #
-set prjdir E:/work_des00/Project/prj_10_hssdrc
+set prjdir ./
 
 set coredir $prjdir/core
 set rtldir  $prjdir/rtl 
