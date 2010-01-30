@@ -111,23 +111,23 @@ module hssdrc_decoder_state (
     STATE_REFR_BIT      
     } state_bits_e;
 
+  localparam bit [10:0] STATE_RESET    = 11'b00000000001; 
+  localparam bit [10:0] STATE_IDLE     = 11'b00000000010; 
+  localparam bit [10:0] STATE_DECODE   = 11'b00000000100; 
+  localparam bit [10:0] STATE_PRE      = 11'b00000001000; 
+  localparam bit [10:0] STATE_TRP      = 11'b00000010000; 
+  localparam bit [10:0] STATE_ACT      = 11'b00000100000; 
+  localparam bit [10:0] STATE_TRCD     = 11'b00001000000; 
+  localparam bit [10:0] STATE_RW       = 11'b00010000000; 
+  localparam bit [10:0] STATE_ADDR_INC = 11'b00100000000; 
+  localparam bit [10:0] STATE_PRE_ALL  = 11'b01000000000;
+  localparam bit [10:0] STATE_REFR     = 11'b10000000000;
+
   //-------------------------------------------------------------------------------------------------- 
   //
   //-------------------------------------------------------------------------------------------------- 
 
-  enum bit [10:0] {
-    STATE_RESET     = (11'h1 << STATE_RESET_BIT)     , 
-    STATE_IDLE      = (11'h1 << STATE_IDLE_BIT)      , 
-    STATE_DECODE    = (11'h1 << STATE_DECODE_BIT)    , 
-    STATE_PRE       = (11'h1 << STATE_PRE_BIT)       , 
-    STATE_TRP       = (11'h1 << STATE_TRP_BIT)       , 
-    STATE_ACT       = (11'h1 << STATE_ACT_BIT)       , 
-    STATE_TRCD      = (11'h1 << STATE_TRCD_BIT)      , 
-    STATE_RW        = (11'h1 << STATE_RW_BIT)        , 
-    STATE_ADDR_INC  = (11'h1 << STATE_ADDR_INC_BIT)  , 
-    STATE_PRE_ALL   = (11'h1 << STATE_PRE_ALL_BIT)   ,
-    STATE_REFR      = (11'h1 << STATE_REFR_BIT)
-    } state, next_state;
+  bit [10:0] state, next_state;
 
   logic   refr_mode       ; 
   logic   write_mode      ; 
