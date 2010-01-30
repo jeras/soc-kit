@@ -38,7 +38,6 @@
 
 `include "hssdrc_timescale.vh"
 
-`include "hssdrc_timing.vh"
 `include "hssdrc_define.vh"
 
 module hssdrc_top (
@@ -92,15 +91,35 @@ module hssdrc_top (
   // arbiter_in <-> decoder's
   //--------------------------------------------------------------------------------------------------
 
-  wire    arbiter_in2___write, arbiter_in1___write, arbiter_in0___write  ;  
-  wire    arbiter_in2___read , arbiter_in1___read , arbiter_in0___read   ;
-  wire    arbiter_in2___refr , arbiter_in1___refr , arbiter_in0___refr   ;
-  rowa_t  arbiter_in2___rowa , arbiter_in1___rowa , arbiter_in0___rowa   ;
-  cola_t  arbiter_in2___cola , arbiter_in1___cola , arbiter_in0___cola   ;
-  ba_t    arbiter_in2___ba   , arbiter_in1___ba   , arbiter_in0___ba     ;
-  burst_t arbiter_in2___burst, arbiter_in1___burst, arbiter_in0___burst  ;
-  chid_t  arbiter_in2___chid , arbiter_in1___chid , arbiter_in0___chid   ;
-  wire    arbiter_in2___ready, arbiter_in1___ready, arbiter_in0___ready  ;
+  wire    arbiter_in0___write  ;  
+  wire    arbiter_in0___read   ;
+  wire    arbiter_in0___refr   ;
+  rowa_t  arbiter_in0___rowa   ;
+  cola_t  arbiter_in0___cola   ;
+  ba_t    arbiter_in0___ba     ;
+  burst_t arbiter_in0___burst  ;
+  chid_t  arbiter_in0___chid   ;
+  wire    arbiter_in0___ready  ;
+  //                            
+  wire    arbiter_in1___write  ;
+  wire    arbiter_in1___read   ;
+  wire    arbiter_in1___refr   ;
+  rowa_t  arbiter_in1___rowa   ;
+  cola_t  arbiter_in1___cola   ;
+  ba_t    arbiter_in1___ba     ;
+  burst_t arbiter_in1___burst  ;
+  chid_t  arbiter_in1___chid   ;
+  wire    arbiter_in1___ready  ;
+  //                            
+  wire    arbiter_in2___write  ;
+  wire    arbiter_in2___read   ;
+  wire    arbiter_in2___refr   ;
+  rowa_t  arbiter_in2___rowa   ;
+  cola_t  arbiter_in2___cola   ;
+  ba_t    arbiter_in2___ba     ;
+  burst_t arbiter_in2___burst  ;
+  chid_t  arbiter_in2___chid   ;
+  wire    arbiter_in2___ready  ;
 
   //--------------------------------------------------------------------------------------------------
   // ba_map <-> decoder's 
@@ -119,25 +138,65 @@ module hssdrc_top (
   // decoder's <-> arbiter_out 
   //--------------------------------------------------------------------------------------------------
 
-  wire          dec2___pre_all       , dec1___pre_all       , dec0___pre_all       ;
-  wire          dec2___refr          , dec1___refr          , dec0___refr          ;
-  wire          dec2___pre           , dec1___pre           , dec0___pre           ;
-  wire          dec2___act           , dec1___act           , dec0___act           ;
-  wire          dec2___read          , dec1___read          , dec0___read          ;
-  wire          dec2___write         , dec1___write         , dec0___write         ;
-  wire          dec2___pre_all_enable, dec1___pre_all_enable, dec0___pre_all_enable;
-  wire          dec2___refr_enable   , dec1___refr_enable   , dec0___refr_enable   ;
-  wire          dec2___pre_enable    , dec1___pre_enable    , dec0___pre_enable    ;
-  wire          dec2___act_enable    , dec1___act_enable    , dec0___act_enable    ;
-  wire          dec2___read_enable   , dec1___read_enable   , dec0___read_enable   ;
-  wire          dec2___write_enable  , dec1___write_enable  , dec0___write_enable  ;
-  wire          dec2___locked        , dec1___locked        , dec0___locked        ;
-  wire          dec2___last          , dec1___last          , dec0___last          ;
-  rowa_t        dec2___rowa          , dec1___rowa          , dec0___rowa          ;
-  cola_t        dec2___cola          , dec1___cola          , dec0___cola          ;
-  ba_t          dec2___ba            , dec1___ba            , dec0___ba            ;
-  chid_t        dec2___chid          , dec1___chid          , dec0___chid          ;
-  sdram_burst_t dec2___burst         , dec1___burst         , dec0___burst         ;
+  wire          dec0___pre_all         ;
+  wire          dec0___refr            ;
+  wire          dec0___pre             ;
+  wire          dec0___act             ;
+  wire          dec0___read            ;
+  wire          dec0___write           ;
+  wire          dec0___pre_all_enable  ;
+  wire          dec0___refr_enable     ;
+  wire          dec0___pre_enable      ;
+  wire          dec0___act_enable      ;
+  wire          dec0___read_enable     ;
+  wire          dec0___write_enable    ;
+  wire          dec0___locked          ;
+  wire          dec0___last            ;
+  rowa_t        dec0___rowa            ;
+  cola_t        dec0___cola            ;
+  ba_t          dec0___ba              ;
+  chid_t        dec0___chid            ;
+  sdram_burst_t dec0___burst           ;
+  //
+  wire          dec1___pre_all         ;
+  wire          dec1___refr            ;
+  wire          dec1___pre             ;
+  wire          dec1___act             ;
+  wire          dec1___read            ;
+  wire          dec1___write           ;
+  wire          dec1___pre_all_enable  ;
+  wire          dec1___refr_enable     ;
+  wire          dec1___pre_enable      ;
+  wire          dec1___act_enable      ;
+  wire          dec1___read_enable     ;
+  wire          dec1___write_enable    ;
+  wire          dec1___locked          ;
+  wire          dec1___last            ;
+  rowa_t        dec1___rowa            ;
+  cola_t        dec1___cola            ;
+  ba_t          dec1___ba              ;
+  chid_t        dec1___chid            ;
+  sdram_burst_t dec1___burst           ;
+  //
+  wire          dec2___pre_all         ;
+  wire          dec2___refr            ;
+  wire          dec2___pre             ;
+  wire          dec2___act             ;
+  wire          dec2___read            ;
+  wire          dec2___write           ;
+  wire          dec2___pre_all_enable  ;
+  wire          dec2___refr_enable     ;
+  wire          dec2___pre_enable      ;
+  wire          dec2___act_enable      ;
+  wire          dec2___read_enable     ;
+  wire          dec2___write_enable    ;
+  wire          dec2___locked          ;
+  wire          dec2___last            ;
+  rowa_t        dec2___rowa            ;
+  cola_t        dec2___cola            ;
+  ba_t          dec2___ba              ;
+  chid_t        dec2___chid            ;
+  sdram_burst_t dec2___burst           ;
 
   //--------------------------------------------------------------------------------------------------
   // access_manager -> arbiter_out 
@@ -202,22 +261,14 @@ module hssdrc_top (
   //
   //-------------------------------------------------------------------------------------------------- 
 
-  hssdrc_refr_counter #(
-    // implementation
-    .REFR_LOW_ENABLE  (`HSSDRC_REFR_LOW_ENABLE),
-    .REFR_HI_ENABLE   (`HSSDRC_REFR_HI_ENABLE ),
-    // timing
-    .cRefCounterMaxTime           (cRefCounterMaxTime         ),
-    .cRefrWindowLowPriorityTime   (cRefrWindowLowPriorityTime ),
-    .cRefrWindowHighPriorityTime  (cRefrWindowHighPriorityTime)
-  ) refr_cnt (
+  hssdrc_refr_counter refr_cnt(
     .clk      (clk  ),  
     .reset    (reset),
     .sclr     (hssdrc_sclr ), // use internal sclr becouse there is refresh "fsm"
     .ack      (refr_cnt___ack    ),
     .hi_req   (refr_cnt___hi_req ),
     .low_req  (refr_cnt___low_req)
-  ); 
+    ); 
   //--------------------------------------------------------------------------------------------------
   //
   //-------------------------------------------------------------------------------------------------- 
