@@ -1,0 +1,159 @@
+<!DOCTYPE FTML SYSTEM "ftml.dtd">
+<FTML><HEAD><TITLE>FMF Timing for s25fl129p00 Parts</TITLE>
+<BODY>
+<REVISION.HISTORY>
+version: |   author:      | mod date: | changes made:
+  V1.0      J.Stoickov    08 Dec 10  Initial release
+</REVISION.HISTORY>
+<TIMESCALE>1ns</TIMESCALE>
+<MODEL>s25fl129p00
+<FMFTIME>
+S25FL129P0XMFI00X_F_30pF<SOURCE> Spansion, S25FL129 064 032P DRS Rev.23.2, Oct 13, 2008 </SOURCE>
+<COMMENT>The values listed are for VCC=2.7V to 3.6V, CL=30pF,
+Industrial Ta=-40 to +85 Celsius</COMMENT>
+<TIMING>
+  (DELAY (ABSOLUTE
+    (COND ~dual (IOPATH SCK SO (0:5:8) (0:5:8) () (0:5:8) () (0:5:8)))
+    (COND dual  (IOPATH SCK SO (0:6:9.5) (0:6:9.5) () (0:6:9.5) () (0:6:9.5)))
+
+    (COND CSNeg (IOPATH CSNeg SO () () (0:5:8) () (0:5:8) ()))
+
+    (COND ~dual  (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual   (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+
+    (COND dual (IOPATH SCK SI (0:6:9.5) (0:6:9.5) () (0:6:9.5) () (0:6:9.5)))
+    (COND dual (IOPATH HOLDNeg SI () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual && CSNeg (IOPATH CSNeg SI () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK HOLDNeg (0:6:9.5) (0:6:9.5) () (0:6:9.5) () (0:6:9.5)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg HOLDNeg () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK WPNeg (0:6:9.5) (0:6:9.5) () (0:6:9.5) () (0:6:9.5)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg WPNeg () () (0:5:8) () (0:5:8) ()))
+))
+(TIMINGCHECK
+    (SETUP CSNeg SCK (3))
+    (SETUP HOLDNeg SCK (3))
+    (SETUP SI SCK (3))
+    (SETUP WPNeg CSNeg (20))
+
+    (HOLD CSNeg SCK (3))
+    (HOLD HOLDNeg SCK (3))
+    (HOLD SI SCK (2))
+    (HOLD WPNeg CSNeg (100))
+
+    (WIDTH (COND  fast_rd (negedge SCK)) (4.8))
+    (WIDTH (COND  fast_rd (posedge SCK)) (4.8))
+    (WIDTH (COND  dual_rd (negedge SCK)) (6.25))
+    (WIDTH (COND  dual_rd (posedge SCK)) (6.25))
+    (WIDTH (COND  rd (negedge SCK)) (12.5))
+    (WIDTH (COND  rd (posedge SCK)) (12.5))
+    (WIDTH (COND  RD_EQU_1 (posedge CSNeg)) (10))
+    (WIDTH (COND  RD_EQU_0 (posedge CSNeg)) (50))
+    (PERIOD (COND fast_rd SCK) (9.6))
+    (PERIOD (COND rd SCK) (25.0))
+    (PERIOD (COND dual_rd SCK) (12.5))
+)
+</TIMING></FMFTIME>
+<FMFTIME>
+</BODY></FTML>
+<FMFTIME>
+S25FL129P0XMFI00X_R_30pF<SOURCE> Spansion, S25FL129 064 032P DRS Rev.23.2, Oct 13, 2008 </SOURCE>
+<COMMENT>The values listed are for regulated Vcc range VCC=3.0V to 3.6V, CL=30pF,
+Industrial Ta=-40 to +85 Celsius</COMMENT>
+<TIMING>
+  (DELAY (ABSOLUTE
+    (COND ~dual (IOPATH SCK SO (0:3:6.5) (0:3:6.5) () (0:3:6.5) () (0:3:6.5)))
+    (COND dual  (IOPATH SCK SO (0:5:8) (0:5:8) () (0:5:8) () (0:5:8)))
+
+    (COND CSNeg (IOPATH CSNeg SO () () (0:5:8) () (0:5:8) ()))
+
+    (COND ~dual  (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual   (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+
+    (COND dual (IOPATH SCK SI (0:5:8) (0:5:8) () (0:5:8) () (0:5:8)))
+    (COND dual (IOPATH HOLDNeg SI () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual && CSNeg (IOPATH CSNeg SI () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK HOLDNeg (0:5:8) (0:5:8) () (0:5:8) () (0:5:8)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg HOLDNeg () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK WPNeg (0:5:8) (0:5:8) () (0:5:8) () (0:5:8)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg WPNeg () () (0:5:8) () (0:5:8) ()))
+))
+(TIMINGCHECK
+    (SETUP CSNeg SCK (3))
+    (SETUP HOLDNeg SCK (3))
+    (SETUP SI SCK (3))
+    (SETUP WPNeg CSNeg (20))
+
+    (HOLD CSNeg SCK (3))
+    (HOLD HOLDNeg SCK (3))
+    (HOLD SI SCK (2))
+    (HOLD WPNeg CSNeg (100))
+
+    (WIDTH (COND  fast_rd (negedge SCK)) (4.8))
+    (WIDTH (COND  fast_rd (posedge SCK)) (4.8))
+    (WIDTH (COND  dual_rd (negedge SCK)) (6.25))
+    (WIDTH (COND  dual_rd (posedge SCK)) (6.25))
+    (WIDTH (COND  rd (negedge SCK)) (12.5))
+    (WIDTH (COND  rd (posedge SCK)) (12.5))
+    (WIDTH (COND  RD_EQU_1 (posedge CSNeg)) (10))
+    (WIDTH (COND  RD_EQU_0 (posedge CSNeg)) (50))
+    (PERIOD (COND fast_rd SCK) (9.6))
+    (PERIOD (COND rd SCK) (25.0))
+    (PERIOD (COND dual_rd SCK) (12.5))
+)
+</TIMING></FMFTIME>
+<FMFTIME>
+</BODY></FTML>
+<FMFTIME>
+S25FL129P0XMFI00X_R_15pF<SOURCE> Spansion, S25FL129 064 032P DRS Rev.23.2, Oct 13, 2008 </SOURCE>
+<COMMENT>The values listed are for regulated Vcc range VCC=3.0V to 3.6V, CL=15pF,
+Industrial Ta=-40 to +85 Celsius</COMMENT>
+<TIMING>
+  (DELAY (ABSOLUTE
+    (COND ~dual (IOPATH SCK SO (0:3:6.5) (0:3:6.5) () (0:3:6.5) () (0:3:6.5)))
+    (COND dual  (IOPATH SCK SO (0:4:7) (0:4:7) () (0:4:7) () (0:4:7)))
+
+    (COND CSNeg (IOPATH CSNeg SO () () (0:5:8) () (0:5:8) ()))
+
+    (COND ~dual  (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual   (IOPATH HOLDNeg SO () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+
+    (COND dual (IOPATH SCK SI (0:4:7) (0:4:7) () (0:4:7) () (0:4:7)))
+    (COND dual (IOPATH HOLDNeg SI () () (0:5:8) (0:5:8) (0:5:8) (0:5:8)))
+    (COND dual && CSNeg (IOPATH CSNeg SI () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK HOLDNeg (0:4:7) (0:4:7) () (0:4:7) () (0:4:7)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg HOLDNeg () () (0:5:8) () (0:5:8) ()))
+
+    (COND dual && QUAD (IOPATH SCK WPNeg (0:4:7) (0:4:7) () (0:4:7) () (0:4:7)))
+    (COND dual && CSNeg && QUAD (IOPATH CSNeg WPNeg () () (0:5:8) () (0:5:8) ()))
+))
+(TIMINGCHECK
+    (SETUP CSNeg SCK (3))
+    (SETUP HOLDNeg SCK (3))
+    (SETUP SI SCK (3))
+    (SETUP WPNeg CSNeg (20))
+
+    (HOLD CSNeg SCK (3))
+    (HOLD HOLDNeg SCK (3))
+    (HOLD SI SCK (2))
+    (HOLD WPNeg CSNeg (100))
+
+    (WIDTH (COND  fast_rd (negedge SCK)) (4.8))
+    (WIDTH (COND  fast_rd (posedge SCK)) (4.8))
+    (WIDTH (COND  dual_rd (negedge SCK)) (6.25))
+    (WIDTH (COND  dual_rd (posedge SCK)) (6.25))
+    (WIDTH (COND  rd (negedge SCK)) (12.5))
+    (WIDTH (COND  rd (posedge SCK)) (12.5))
+    (WIDTH (COND  RD_EQU_1 (posedge CSNeg)) (10))
+    (WIDTH (COND  RD_EQU_0 (posedge CSNeg)) (50))
+    (PERIOD (COND fast_rd SCK) (9.6))
+    (PERIOD (COND rd SCK) (25.0))
+    (PERIOD (COND dual_rd SCK) (12.5))
+)
+</TIMING></FMFTIME>
+<FMFTIME>
+</BODY></FTML>
